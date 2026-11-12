@@ -3,9 +3,9 @@ const SITE_URL = 'https://intothepainting.com';
 const UI = {
   title: { zh: '入画', en: 'Into the Painting' },
   sub: { zh: '追光　莫奈', en: 'Chasing the light with Monet' },
-  // what there is to do, said plainly: once under the name on the title, once on the card of each world (# is how many he painted there)
+  // what there is to do, said plainly and without numbers: once under the name on the title, once on the card of each world
   goal: { zh: '走进他的画里，把它们一幅一幅收齐。', en: 'Walk into his paintings and collect them all.' },
-  goalWorld: { zh: '莫奈在这里画过#幅画。循着光柱找到每一处，等到他落笔的那一刻，把#幅都收齐。', en: 'Monet painted # pictures here. Find each beam of light, wait for his moment, and collect all #.' },
+  goalWorld: { zh: '莫奈在这里画过画。循着光柱找到它们，等到他落笔的那一刻，把画收进画册。', en: 'Monet painted here. Find the beams of light, wait for his moment, and collect his paintings.' },
   start: { zh: '开始', en: 'Begin' }, resume: { zh: '继续', en: 'Continue' }, restart: { zh: '从头开始', en: 'Start over' },
   loading: { zh: '正在调色', en: 'Mixing the colours' },
   noGL: { zh: '这台设备的浏览器不支持 WebGL2，画无法展开。请换用较新的 Chrome、Edge、Safari 或 Firefox。', en: 'This browser has no WebGL2, so the painting cannot open. Please try a recent Chrome, Edge, Safari or Firefox.' },
@@ -76,9 +76,6 @@ const FLY_ENERGY = {
   text: { zh: '按住空格，阳伞会带你飞起来。现在它每次腾空能振两下，之后靠滑翔。每多收几幅画，它就能多振一下。', en: 'Hold Space and the parasol lifts you. For now it has two beats in the air, then you glide. Collect more paintings and it gains more.' },
   touch: { zh: '在屏幕右下方点一下是跳，按住不放，阳伞会带你飞起来。现在它每次腾空能振两下，之后靠滑翔。每多收几幅画，它就能多振一下。', en: 'At the lower right a tap is a jump. Hold, and the parasol lifts you. For now it has two beats in the air, then you glide. Collect more paintings and it gains more.' },
 };
-// a small number as a word, as it is written in a sentence
-const numWord = (n, lang) => (lang === 'en' ? ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] : ['零', '一', '两', '三', '四', '五', '六', '七', '八', '九', '十'][n]) || String(n);
-
 // things are taught one at a time, each once, at the moment it first matters: never a list at the start.
 // keys are groups of [key caps, what they do]; anchor names the thing on screen the card stands beside
 const LESSONS = {
@@ -86,7 +83,7 @@ const LESSONS = {
     text: { zh: '朝远处那道光走过去。', en: 'Walk towards that beam of light.' },
     touch: { zh: '在屏幕左侧滑动行走，右侧拖动环顾。朝远处那道光走过去。', en: 'Slide on the left to walk, drag on the right to look round. Walk towards that beam of light.' } },
   arc: { anchor: 'arc', text: { zh: '莫奈在这里画过一幅画。这条弧线是一天，时间正流向他落笔的那一刻。', en: 'Monet painted a picture here. This arc is one day, and time is running to the moment he painted.' } },
-  album: { anchor: 'album', keys: [[['J'], { zh: '画册', en: 'album' }]], text: { zh: '收下的画都在画册里，可以和原作并排看。这片海岸上还有四幅。五幅收齐，通往下一段岁月的画框就会出现。', en: 'What you catch is kept in the album, beside the originals. Four more are waiting on this coast. Catch all five and the frame that leads on appears.' } },
+  album: { anchor: 'album', keys: [[['J'], { zh: '画册', en: 'album' }]], text: { zh: '收下的画都在画册里，可以和原作并排看。这片海岸上还有别的画。全部收齐，通往下一段岁月的画框就会出现。', en: 'What you catch is kept in the album, beside the originals. More are waiting on this coast. Catch them all and the frame that leads on appears.' } },
   fly: { anchor: 'fly', keys: [[[{ zh: '空格', en: 'Space' }], { zh: '振伞起飞', en: 'take off' }], [['Shift'], { zh: '加速，降落', en: 'faster, and down' }]],
     text: { zh: '按住空格，阳伞会带你飞起来。飞着去找下一道光。在空中按住 Shift 飞得更快，并且很快降下来。', en: 'Hold Space and the parasol carries you up. Fly to the next beam of light. In the air, hold Shift to go faster and to come down quickly.' },
     touch: { zh: '在屏幕右下方点一下是跳，按住不放，阳伞会带你飞起来。飞着去找下一道光。', en: 'At the lower right of the screen a tap is a jump. Hold, and the parasol carries you up. Fly to the next beam of light.' } },

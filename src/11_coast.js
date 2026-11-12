@@ -754,9 +754,9 @@ const W_COAST = (() => {
         gableRoof(W, { x, z, w: 6.4, d: 2.6, y: y + 1.2, rh: 1.3, yaw, roof: thatch, base: hex('#8e7a52'), gable: pal(['#3a3a44'], 0.04), gableBase: [0.2, 0.2, 0.22], step: 0.4, len: 1.0, wid: 0.32 });
         W.collide(x, z, 2.4);
       };
-      caloge(-197, 27, 0.3); caloge(-189, 31, 0.15); caloge(-128, 30, -0.4);
+      caloge(-177, 31, 0.3); caloge(-189, 31, 0.15); caloge(-136, 33, -0.4); // (all of these stand on the level shingle: the cliffs at both ends of the beach begin at about x -200 and x -130)
       const wood = pal(['#5a4636', '#6a5240', '#4e3e30'], 0.04);
-      for (const c of [[-183, 21], [-194, 13], [-201, 3], [-129, 16]]) { // capstans, each with its bar across
+      for (const c of [[-183, 21], [-194, 13], [-196, 4], [-133, 13]]) { // capstans, each with its bar across
         if (!may(c[0], c[1], 1.2, 1)) continue;
         const y = W.h(c[0], c[1]), a = rnd() * Math.PI;
         tower(W, { x: c[0], z: c[1], y0: y - 0.1, y1: y + 0.95, r0: 0.45, r1: 0.4, sides: 6, wall: wood, base: wood(rnd), step: 0.25, len: 0.5, wid: 0.2 });
@@ -764,7 +764,7 @@ const W_COAST = (() => {
         W.collide(c[0], c[1], 0.7);
       }
       const cols = [pal(['#2e4a6a', '#3a587a'], 0.04), pal(['#7a3a2e', '#8a463a'], 0.04), pal(['#3a5a4a', '#46685a'], 0.04), pal(['#c8a040', '#b89038'], 0.04)], trim = pal(['#e8e0cc', '#d8c8a0'], 0.03);
-      [[-197, 17, 0.4], [-203, 9, 0.15], [-186, 26, 0.6], [-126, 21, 1.2], [-132, 26, 1.0]].forEach((b, i) => { if (may(b[0], b[1], 1.3, 2.8)) beachBoat(W, b[0], b[1], b[2], cols[i % 4], trim); });
+      [[-193, 18, 0.4], [-194, 8, 0.15], [-186, 26, 0.6], [-133.5, 18, 1.2], [-146, 30, 1.0]].forEach((b, i) => { if (may(b[0], b[1], 1.3, 2.8)) beachBoat(W, b[0], b[1], b[2], cols[i % 4], trim); });
       person(W, -186, 23, 2.2, { dress: hex('#3c4a5e'), top: hex('#8a6a4a'), hat: hex('#2e3440') });
       person(W, -160, 66, 0.4, { dress: hex('#2a2a32'), top: hex('#e6e0d0'), hat: hex('#f0ece0') });
     });

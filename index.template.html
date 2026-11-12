@@ -171,17 +171,21 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 #marker i::after { content: ""; position: absolute; left: 50%; top: -13px; margin-left: -6px; border: 6px solid transparent; border-bottom-color: var(--sun); }
 #marker.at i::after { display: none; }
 #marker span { position: absolute; left: 0; top: 19px; transform: translateX(-50%); white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: rgba(31, 34, 56, 0.62); font-family: var(--font-meta); font-size: 12px; letter-spacing: 0.06em; color: var(--sun); }
+#marker.plain i { left: -11px; top: -11px; width: 22px; height: 22px; border-width: 1.5px; background: none; box-shadow: 0 0 10px rgba(255, 198, 92, 0.5); }
+#marker.plain i::before { display: none; }
+#marker.plain i::after { top: -9px; margin-left: -4px; border-width: 4px; }
+#marker.plain span, #marker.bare span { display: none; }
 #marker.on { opacity: 1; }
+#marker.plain.on { opacity: 0.9; }
 #marker.at.on { opacity: 0.9; }
 #marker.call i { animation: mkcall 1.2s ease-out infinite; }
 @keyframes mkcall { 0% { box-shadow: 0 0 0 0 rgba(255, 198, 92, 0.85); } 100% { box-shadow: 0 0 0 20px rgba(255, 198, 92, 0); } }
-/* (0.9) the beats the parasol has left: under the arc of the day, on a touch screen over the place where flying is held */
-#beats { position: absolute; left: 50%; bottom: calc(clamp(8px, 2.4vh, 22px) + 15px); transform: translateX(-50%); display: flex; gap: 7px; pointer-events: none; } /* (inside the arc of the day, which is empty there) */
+/* (0.9) the beats the parasol has left: in the middle of the screen's foot, between the line of advice and the arc of the day */
+#beats { position: absolute; left: 50%; bottom: calc(clamp(8px, 2.4vh, 22px) + 70px); transform: translateX(-50%); display: flex; gap: 7px; pointer-events: none; }
 #beats i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--sun); background: rgba(31, 34, 56, 0.35); transition: background 0.25s ease; }
 #beats i.full { background: var(--sun); box-shadow: 0 0 8px rgba(255, 198, 92, 0.6); }
 #beats.dry { animation: beatsdry 0.42s ease; }
 @keyframes beatsdry { 0%, 100% { margin-left: 0; } 25% { margin-left: -6px; } 75% { margin-left: 6px; } }
-.coarse #beats { left: 78%; bottom: auto; top: calc(68% - 66px); }
 
 /* at an easel: the picture's edge, drawn round as the light is caught */
 #frame { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0; box-shadow: 0 0 0 200vmax rgba(31, 34, 56, 0.34); }
@@ -254,9 +258,6 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 #card h2 { margin: 0; font-size: clamp(38px, 6.6vw, 88px); font-weight: 900; letter-spacing: 0.12em; line-height: 1.1; }
 .en #card h2 { font-family: var(--font-latin); font-weight: 500; font-style: italic; letter-spacing: 0; text-wrap: balance; }
 #card .yrs { font-family: var(--font-latin); font-style: italic; font-size: clamp(22px, 3vw, 34px); font-variant-numeric: tabular-nums; opacity: 0.9; }
-#card .wl { display: flex; flex-wrap: wrap; gap: clamp(7px, 1vw, 12px); margin-top: clamp(14px, 2vw, 24px); }
-#card .wl i { width: clamp(30px, 3.6vw, 46px); aspect-ratio: 3 / 2; border: 1px solid rgba(255, 250, 240, 0.7); border-radius: 2px; background: rgba(255, 250, 240, 0.05) center / cover no-repeat; box-shadow: 0 2px 10px rgba(8, 10, 24, 0.35); }
-#card .wl i.on { border-color: var(--sun); }
 #card .gl { margin: clamp(12px, 1.8vw, 22px) 0 0; max-width: 31em; font-family: var(--font-meta); font-size: clamp(14px, 1.5vw, 17px); line-height: 1.75; letter-spacing: 0.08em; opacity: 0.94; }
 /* the ending: the world goes on turning behind a wall of her own pictures, and a few lines are said one after another */
 #finale { position: absolute; inset: 0; z-index: 6; overflow-y: auto; display: flex; padding: clamp(16px, 4vw, 44px); background: radial-gradient(ellipse at 50% 42%, rgba(31, 34, 56, 0.58), rgba(18, 20, 38, 0.86)); opacity: 0; visibility: hidden; transition: opacity 2.6s ease, visibility 0s linear 2.6s; touch-action: pan-y; }
@@ -442,7 +443,7 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
     <div id="touch"><div id="stick"><i></i></div><div id="flybtn"></div></div>
   </div>
 
-  <div id="card" class="layer fade shade"><h2 id="cdName"></h2><div class="yrs" id="cdYrs"></div><div class="wl" id="cdWall"></div><p class="gl" id="cdGoal"></p></div>
+  <div id="card" class="layer fade shade"><h2 id="cdName"></h2><div class="yrs" id="cdYrs"></div><p class="gl" id="cdGoal"></p></div>
 
   <div id="title" class="layer fade shade">
     <h1 id="tTitle"></h1>

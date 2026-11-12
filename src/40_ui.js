@@ -180,9 +180,7 @@ const App = {
   },
   cardText(ch) {
     const w = WORLD_TEXT[ch.id]; $('cdName').textContent = this.t(w.name); $('cdYrs').textContent = w.years;
-    this.frames($('cdWall'), ch); // under the name, the paintings of this place as frames: empty, until she has caught them
-    // and under the frames, in a sentence, what there is to do here
-    $('cdGoal').textContent = this.t(UI.goalWorld).replace(/#/g, numWord(ch.need, this.lang));
+    $('cdGoal').textContent = this.t(UI.goalWorld); // in a sentence, what there is to do here (how many there are she learns from the row of frames, with her first catch)
   },
   // the paintings of a world as a row of small frames: an empty one for each still to catch, her own picture in each one caught.
   // Nothing is said about them. The empty frames say what there is to do
@@ -212,6 +210,7 @@ const App = {
     this.cardUntil = performance.now() / 1000 + 8.7; this.hide('hint'); if (this.lesson) this.lessonEnd(1);
   },
   onArrive(ch) {
+    track('world', { id: ch.id });
     this.show('hud'); this.dialKey = ''; this.thumbKey = ''; this.count();
     this.later('hint0', 6200, () => { if (this.game.mode === 'play') this.hint(this.coarse ? 'hintTouch' : 'hintKeys', 9, true); });
   },
@@ -221,7 +220,7 @@ const App = {
     if (i < 0 && this.gainHere) { this.gainHere = false; this.gainUntil = performance.now() / 1000 + 6; } // she walks on from a catch: the row of frames stays six seconds more
     if (i >= 0) this.hide('hint'); // at an easel the picture is left alone: no words are laid over it
   },
-  onAuto(on) { $('btnSeek').classList.toggle('active', !!on); },
+  onAuto(on) { $('btnSeek').classList.toggle('active', !!on); if (on) track('seek', {}); if (on && this.seen && !this.seen.sought) { this.seen.sought = 1; LS.set('ruhua.monet.learn', JSON.stringify(this.seen)); } }, // (she has used Seek: she need not be told of it again)
   // (0.9) the parasol is spent in the air: the row of beats shakes, and the first time it is said what that means
   onDry() { const b = $('beats'); b.classList.remove('dry'); void b.offsetWidth; b.classList.add('dry'); this.hint('beatsDry', 9, true); },
   // (0.9) the row of beats: as many marks as the parasol has, the spent ones hollow
@@ -244,6 +243,7 @@ const App = {
   onCapture(e, ch, url, big) {
     if (big) PICS.put(e.id, big);
     const w = WORKS[e.id], g = this.game;
+    track('catch', { id: e.id, n: Object.keys(g.caps).length, world: ch.id });
     clearTimeout(this.timers.hint0);
     this.hide('hint');
     // what she has just caught: its name stands on the picture for a few seconds, its moment under it
@@ -263,7 +263,7 @@ const App = {
     }
     if (!e.hidden && ch.door && n === ch.need) this.later('door', 7400, () => this.hint('hintDoor', 8));
     // the last of the twenty five: the picture is left to stand a while, then the ending begins of itself
-    if (!e.hidden && !g.mainLeft() && !this.ended) { this.ended = true; LS.set('ruhua.monet.fin', '1'); this.finaleDue = performance.now() / 1000 + 9.5; }
+    if (!e.hidden && !g.mainLeft() && !this.ended) { this.ended = true; LS.set('ruhua.monet.fin', '1'); this.finaleDue = performance.now() / 1000 + 9.5; track('finished', { days: g.days }); }
   },
   onFound() { this.dialKey = ''; this.thumbKey = ''; this.hint('hintFound', 8); },
   // something met on the way: its name is said once, quietly, at the top of the screen, and it is kept in the album
@@ -523,6 +523,7 @@ const App = {
   // with the card saved as a file and the words on the clipboard. Whatever a browser refuses falls back to saving the card
   shareTo(kind) {
     const id = this.detail; if (!id) return;
+    track('share', { to: kind, id: String(id).startsWith('free:') ? 'view' : id });
     const free = String(id).startsWith('free:'), tip = $('dtTip'), shape = kind === 'ig' ? 'tall' : 'wide', site = SITE_URL;
     const text = ($('dtCap').value || this.caption(id)).trim(), tags = this.t(UI.capTags), full = text + '\n\n' + site.replace(/^https?:\/\//, '') + '\n' + tags;
     const name = 'intothepainting-' + (free ? 'view' : id) + (kind === 'ig' ? '-4x5' : '-16x9') + '.png';
@@ -768,15 +769,17 @@ const App = {
       const key = tg.kind + Math.round(tg.x) + ',' + Math.round(tg.z), d = Math.hypot(tg.x - p.x, tg.z - p.z);
       if (key !== this.tgKey || d < this.bestD - 5) { this.tgKey = key; this.bestD = d; this.strayT = 0; } else this.strayT = (this.strayT || 0) + dt;
       const W = g.cur, high = !!W && d < 45 && p.alt < 0.5 && g.groundAt(W, tg.x, tg.z) - (p.yAbs === undefined ? 0 : p.yAbs) > 3.5; // the place stands well above her (a bridge, a cliff)
-      // She is told, and told again for as long as it lasts: the ring calls, the word Seek at the top calls, and a card says that G (or
-      // Seek) makes her walk there by herself. In her first paintings it comes sooner. Once for each place, if that place stands high
-      // above her or across water, the line says how to get there instead
-      if (this.strayT > (high ? 9 : n < 3 ? 10 : 14) && (d > 20 || high) && !this.lesson && now > (this.strayNudge || 0) && now >= this.gapUntil) {
-        this.strayNudge = now + 38; this.callUntil = now + 13; this.seekCalled = true;
+      // She has lost her way. In the first world a card says that G (or Seek) makes her walk to the next painting by herself, and
+      // the word Seek at the top calls with it: up to three times, and no more once she has used it. In the second world it is
+      // said once, to someone who was never told. After that the ring alone shows the way.
+      // Once for each place, if that place stands high above her or across water, a line says how to get there instead
+      if (this.strayT > (high ? 9 : n < 2 ? 10 : 14) && (d > 20 || high) && !this.lesson && now > (this.strayNudge || 0) && now >= this.gapUntil) {
+        this.strayNudge = now + 38; this.callUntil = now + 13;
         let wet = false;
         if (W && W.waterY !== null && W.waterY !== undefined && p.alt < 0.5) for (let q = 4; q < Math.min(d, 70) && !wet; q += 4) { const x = p.x + ((tg.x - p.x) / d) * q, z = p.z + ((tg.z - p.z) / d) * q; if (W.h(x, z) < W.waterY - 0.05) wet = true; }
         const special = high ? (this.coarse ? 'hintUpTouch' : 'hintUp') : wet && !g.slid ? 'hintWater' : null;
-        if (special && this.saidFor !== key) { this.saidFor = key; this.hint(special, 9); } else this.lessonShow('seek');
+        if (special && this.saidFor !== key) { this.saidFor = key; this.hint(special, 9); }
+        else if (g.wi === 0 ? !this.seen.sought && (this.seen.seekN || 0) < 3 : g.wi === 1 && !this.seen.seek) { this.seen.seekN = (this.seen.seekN || 0) + 1; this.seekCalled = true; this.seekCallUntil = now + 13; this.lessonShow('seek'); }
       }
     }
     const L = this.lesson;
@@ -812,7 +815,7 @@ const App = {
     else if (!S.thumbs && atEasel && n >= 3 && this.thumbsMixed) id = 'thumbs';
     else if (!S.sun && atEasel && n >= 5 && !g.paintE && g.restT <= 0) id = 'sun';
     else if (!S.free && away && n >= 2 && this.idleT > 1.5) id = 'free';
-    else if (!S.seek && away && n >= 1 && (this.lostT > 26 || this.strayT > 8) && !g.auto) id = 'seek';
+    else if (!S.seek && away && n >= 1 && g.wi <= 1 && (this.lostT > 26 || this.strayT > 8) && !g.auto) id = 'seek'; // (told once, in the first world or the second, to whoever has not been)
     if (id) this.lessonShow(id);
   },
   // ----- the ending: her twenty five pictures hang themselves on a wall while the days go by behind them -----
@@ -949,7 +952,7 @@ const App = {
     // the interface comes in piece by piece: the sun's road at the first easel, the album and the rest with the first painting, the seasons when one first changes
     const nc = Object.keys(g.caps).length, app = $('app'), nowS0 = performance.now() / 1000;
     if (g.spot >= 0 || nc > 0) this.dialShown = true;
-    app.classList.toggle('hide-more', nc === 0); app.classList.toggle('hide-seek', nc === 0 && !this.seekCalled); $('btnSeek').classList.toggle('call', nowS0 < (this.callUntil || 0) && !g.auto);
+    app.classList.toggle('hide-more', nc === 0); app.classList.toggle('hide-seek', nc === 0 && !this.seekCalled); $('btnSeek').classList.toggle('call', nowS0 < (this.seekCallUntil || 0) && !g.auto);
     const nowS = performance.now() / 1000, carded = nowS < (this.cardUntil || 0);
     // the row of frames under the album: it comes when a painting is caught and goes a few seconds after she has walked on, so that the land is left to be looked at
     { const on = g.mode === 'play' && !g.free && nowS < (this.gainUntil || 0); $('gain').classList.toggle('on', on); if (on) this.wall(); }
@@ -1023,13 +1026,16 @@ const App = {
       th.classList.toggle('on', k > 0.3);
     } else th.classList.remove('on');
     this.learnTick();
-    // The ring that shows the next place, with how far it is. In sight, it stands on the place itself; out of sight, at the edge of
-    // the screen on the side where the place lies, with a point towards it
-    const mk = $('marker'), t = k < 0.05 && !this.panel && !g.free && !carded ? g.targetScreen() : null;
+    // The ring that shows the next place. For her first two paintings it is always there, with how far the place is: on the place
+    // itself when that is in sight, at the edge of the screen with a point towards it when it is not. For the third it is still
+    // always there, without the distance. From the fourth on it is the plain ring it always was: only when the place is out of
+    // sight, at the edge on the side where it lies. By then she knows what she is looking for
+    const mk = $('marker'), early = nc < 3, t = k < 0.05 && !this.panel && !g.free && !carded ? g.targetScreen() : null;
     if (!t || (t.dist < 16 && t.up < 3.5)) { mk.classList.remove('on'); this.markOn = false; return; } // (near, the place itself is plain to see: unless it stands high above her)
-    const W = g.cssW, H = g.cssH, pad = 38;
+    const W = g.cssW, H = g.cssH, pad = early ? 38 : 30;
     let x = (t.nx * 0.5 + 0.5) * W, y = (1 - (t.ny * 0.5 + 0.5)) * H, rot = '';
     const off = t.behind || x < pad || x > W - pad || y < pad + 40 || y > H - 130;
+    if (!off && !early) { mk.classList.remove('on'); this.markOn = false; return; }
     if (off) {
       let dx = x - W / 2, dy = y - H / 2;
       if (t.behind) { const l = Math.hypot(dx, dy) || 1; dx = (dx / l) * W; dy = (dy / l) * H; }
@@ -1039,7 +1045,7 @@ const App = {
     }
     mk.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'; mk.firstChild.style.transform = rot;
     const dist = Math.round(t.dist) + this.t(UI.metres); if (dist !== this.mkD) { this.mkD = dist; $('mkDist').textContent = dist; }
-    mk.classList.toggle('at', !off); mk.classList.toggle('call', performance.now() / 1000 < (this.callUntil || 0));
+    mk.classList.toggle('plain', !early); mk.classList.toggle('bare', nc === 2); mk.classList.toggle('at', !off); mk.classList.toggle('call', early && performance.now() / 1000 < (this.callUntil || 0));
     mk.classList.add('on'); this.markOn = true;
   },
 
@@ -1051,8 +1057,8 @@ const App = {
       this.hide('title'); $('btnLang').style.display = 'none';
       if (fresh) { this.ended = false; LS.set('ruhua.monet.fin', ''); for (const id in g.caps) { PICS.del(id); delete g.big[id]; } }
       this.finaleDue = 0;
-      g.begin(fresh);
-      this.learnBegin(fresh); this.albumSeen = false;
+      g.begin(fresh); track(fresh || !Object.keys(g.caps).length ? 'begin' : 'continue', { paintings: Object.keys(g.caps).length, touch: this.coarse ? 1 : 0 });
+      this.learnBegin(fresh); this.albumSeen = false; this.capWas = g.beatsCap(); // (0.9) what the parasol has now: a painting that brings more is then noticed
       // a game already complete that has not had its ending yet is given it now
       if (!g.mainLeft() && !this.ended) { this.ended = true; LS.set('ruhua.monet.fin', '1'); this.capAt = performance.now() / 1000; this.finaleDue = this.capAt + 7; }
       if (!g.trans) this.onCard(g.ch);

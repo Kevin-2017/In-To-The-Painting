@@ -128,3 +128,7 @@ function angDiff(a, b) { // shortest signed difference a - b
   if (d > Math.PI) d -= TAU; else if (d < -Math.PI) d += TAU;
   return d;
 }
+
+// What happens in a game, told to whoever is counting: the page of the web site may give a function window.itpTrack(name, props)
+// (see launch/README.md). Where there is none, as inside Claude, nothing is sent and nothing is kept
+const track = (name, props) => { try { if (typeof window.itpTrack === 'function') window.itpTrack(name, props || {}); } catch (e) { /* counting never gets in the way of playing */ } };
