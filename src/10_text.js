@@ -1,7 +1,11 @@
 // ---------- words (kept to a minimum: names, years, and the labels of an album) ----------
+const SITE_URL = 'https://intothepainting.com';
 const UI = {
   title: { zh: '入画', en: 'Into the Painting' },
   sub: { zh: '追光　莫奈', en: 'Chasing the light with Monet' },
+  // what there is to do, said plainly: once under the name on the title, once on the card of each world (# is how many he painted there)
+  goal: { zh: '走进他的画里，把它们一幅一幅收齐。', en: 'Walk into his paintings and collect them all.' },
+  goalWorld: { zh: '莫奈在这里画过#幅画。循着光柱找到每一处，等到他落笔的那一刻，把#幅都收齐。', en: 'Monet painted # pictures here. Find each beam of light, wait for his moment, and collect all #.' },
   start: { zh: '开始', en: 'Begin' }, resume: { zh: '继续', en: 'Continue' }, restart: { zh: '从头开始', en: 'Start over' },
   loading: { zh: '正在调色', en: 'Mixing the colours' },
   noGL: { zh: '这台设备的浏览器不支持 WebGL2，画无法展开。请换用较新的 Chrome、Edge、Safari 或 Firefox。', en: 'This browser has no WebGL2, so the painting cannot open. Please try a recent Chrome, Edge, Safari or Firefox.' },
@@ -14,6 +18,15 @@ const UI = {
   hintFly: { zh: '看向哪里就滑向哪里　低头俯冲　按住空格再升　Shift 急降', en: 'You glide where you look. Look down to dive, hold Space to climb, Shift to drop' },
   hintFlyTouch: { zh: '推摇杆滑翔　拖动视角定方向　按住右下方再升', en: 'Push the stick to glide, drag to steer, hold the lower right to climb' },
   hintSlide: { zh: '水面、雪地和下坡都能滑行　朝哪边推就往哪边拐', en: 'Water, snow and downhill slopes carry you. Lean the way you want to turn' },
+  // said once for a place she is not getting nearer to, when that place lies across water or stands high above her
+  hintWater: { zh: '水面可以滑行。直接走上去就能滑过河，也可以飞过去。', en: 'The water carries you. Walk onto it and glide across, or fly over.' },
+  hintUp: { zh: '这幅画在高处。按住空格，阳伞会带你飞上去。', en: 'This one is up high. Hold Space and the parasol lifts you there.' },
+  hintUpTouch: { zh: '这幅画在高处。按住右下方的「飞」，阳伞会带你飞上去。', en: 'This one is up high. Hold Fly at the lower right and the parasol lifts you there.' },
+  metres: { zh: ' 米', en: ' m' },
+  // (0.9) the beats of the parasol
+  beatsUp: { zh: '阳伞更有力了。现在腾空一次可以振 # 下。', en: 'The parasol grows stronger. It now has # beats in the air.' },
+  beatsAll: { zh: '二十五幅都收齐了。阳伞不会再累，想飞多久就飞多久。', en: 'All twenty five are yours. The parasol no longer tires. Fly as long as you like.' },
+  beatsDry: { zh: '阳伞没力气了，先滑翔。落地之后力气就回来。收的画越多，它能振的次数越多。', en: 'The parasol is spent, so glide. It recovers when you land. The more paintings you collect, the more beats it has.' },
   hintEasel: { zh: '光正在转向他落笔的那一刻', en: 'The light is turning to the moment he painted' },
   hintSun: { zh: '也可以自己拖动下面的太阳', en: 'You can also move the sun below yourself' },
   orig: { zh: '原画', en: 'The original' }, mine: { zh: '我的画', en: 'My painting' },
@@ -38,15 +51,33 @@ const UI = {
   hintFound: { zh: '这里藏着一个画架。莫奈在这里也画过。', en: 'An easel is hidden here. Monet painted here too.' },
   fly: { zh: '飞', en: 'Fly' },
   count: { zh: '幅', en: '' },
-  help: { zh: '图例', en: 'Guide' }, soundHint: { zh: '点一下屏幕，音乐就会响起', en: 'Tap once and the music begins' },
+  help: { zh: '图例', en: 'Guide' }, soundHint: { zh: '点一下，播放声音', en: 'Click to play sound' }, soundTap: { zh: '点一下，播放声音', en: 'Tap to play sound' },
   leave: { zh: '继续走', en: 'Walk on' }, backWorld: { zh: '回到画里', en: 'Back to the painting' }, shareNow: { zh: '分享这张取景', en: 'Share this view' },
   free: { zh: '取景', en: 'Frame' }, shutter: { zh: '收下', en: 'Keep' }, myFrames: { zh: '我的取景', en: 'Views of my own' },
-  hintFree: { zh: '拖动画面取景　拖动太阳换时辰　回车或圆钮收下　P 退出', en: 'Drag to frame, drag the sun for the hour, Enter or the round button to keep it, P to leave' },
+  hintFree: { zh: '拖动画面取景　拖动太阳换时辰　回车或圆钮收下　F 退出', en: 'Drag to frame, drag the sun for the hour, Enter or the round button to keep it, F to leave' },
   hintFreeTouch: { zh: '拖动画面取景　拖动太阳换时辰　点圆钮收下　再点取景退出', en: 'Drag to frame, drag the sun for the hour, tap the round button to keep it' },
-  save: { zh: '保存与分享', en: 'Save or share' }, del: { zh: '删除', en: 'Delete' }, saveTip: { zh: '长按或右键图片也可以保存', en: 'Press and hold or right click the image to save it too' },
+  save: { zh: '保存图片', en: 'Save image' }, shareX: { zh: '发到 X', en: 'Post on X' }, shareIG: { zh: '发到 Instagram', en: 'Share on Instagram' },
+  // the words that go with a picture passed on (# is the painting, or the place of a view of her own); she can change them before they go
+  capWork: { zh: '我走进了莫奈的《#》，等到了他落笔那一刻的光。这一幅是我的。', en: 'I walked into Monet’s “#” and waited for his light. This one is mine.' },
+  capFree: { zh: '在莫奈的「#」，我自己取的一个景。', en: 'A view of my own, framed in Monet’s light. #.' },
+  capTags: { zh: '#莫奈 #入画 #IntoThePainting', en: '#Monet #IntoThePainting' },
+  tipXPaste: { zh: '卡片已经复制，X 已经打开。在发帖框里粘贴，图就进去了。', en: 'The card is copied and X is open. Paste it into the post.' },
+  tipXSaved: { zh: '卡片已经存成图片，X 已经打开。在发帖框里把这张图加进去。', en: 'The card is saved as an image and X is open. Add the image to the post.' },
+  tipIGDesk: { zh: '卡片已经存成图片，文案已经复制。在 Instagram 里新建帖子，选这张图，再粘贴文案。', en: 'The card is saved and the caption copied. In Instagram, create a post, choose the image, then paste the caption.' },
+  tipSheetX: { zh: '在弹出的分享面板里选 X，图和文案都会带过去。', en: 'Choose X in the share sheet. The card and the caption go with it.' },
+  tipSheetIG: { zh: '文案已经复制。在弹出的分享面板里选 Instagram，再粘贴文案。', en: 'The caption is copied. Choose Instagram in the share sheet, then paste it.' },
+  tipOpen: { zh: '　没有自动打开的话，点这里', en: ' If it did not open, go to' }, del: { zh: '删除', en: 'Delete' }, saveTip: { zh: '长按或右键图片也可以保存', en: 'Press and hold or right click the image to save it too' },
   whole: { zh: '收齐了', en: 'all caught' }, mineBy: { zh: '我在画里看到的', en: 'As I saw it inside the painting' }, hisBy: { zh: '莫奈的原作', en: 'Monet’s original' },
   hpKeys: { zh: '操作', en: 'Controls' }, hpTouch: { zh: '触屏', en: 'On a touch screen' }, hpSigns: { zh: '画面上的记号', en: 'Signs on the screen' },
 };
+
+// (0.9) what is said about flying when the parasol has only so many beats
+const FLY_ENERGY = {
+  text: { zh: '按住空格，阳伞会带你飞起来。现在它每次腾空能振两下，之后靠滑翔。每多收几幅画，它就能多振一下。', en: 'Hold Space and the parasol lifts you. For now it has two beats in the air, then you glide. Collect more paintings and it gains more.' },
+  touch: { zh: '在屏幕右下方点一下是跳，按住不放，阳伞会带你飞起来。现在它每次腾空能振两下，之后靠滑翔。每多收几幅画，它就能多振一下。', en: 'At the lower right a tap is a jump. Hold, and the parasol lifts you. For now it has two beats in the air, then you glide. Collect more paintings and it gains more.' },
+};
+// a small number as a word, as it is written in a sentence
+const numWord = (n, lang) => (lang === 'en' ? ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] : ['零', '一', '两', '三', '四', '五', '六', '七', '八', '九', '十'][n]) || String(n);
 
 // things are taught one at a time, each once, at the moment it first matters: never a list at the start.
 // keys are groups of [key caps, what they do]; anchor names the thing on screen the card stands beside
@@ -55,13 +86,14 @@ const LESSONS = {
     text: { zh: '朝远处那道光走过去。', en: 'Walk towards that beam of light.' },
     touch: { zh: '在屏幕左侧滑动行走，右侧拖动环顾。朝远处那道光走过去。', en: 'Slide on the left to walk, drag on the right to look round. Walk towards that beam of light.' } },
   arc: { anchor: 'arc', text: { zh: '莫奈在这里画过一幅画。这条弧线是一天，时间正流向他落笔的那一刻。', en: 'Monet painted a picture here. This arc is one day, and time is running to the moment he painted.' } },
-  album: { anchor: 'album', keys: [[['J'], { zh: '画册', en: 'album' }]], text: { zh: '收下的画都在画册里，可以和原作并排看。', en: 'What you catch is kept in the album, beside the originals.' } },
+  album: { anchor: 'album', keys: [[['J'], { zh: '画册', en: 'album' }]], text: { zh: '收下的画都在画册里，可以和原作并排看。这片海岸上还有四幅。五幅收齐，通往下一段岁月的画框就会出现。', en: 'What you catch is kept in the album, beside the originals. Four more are waiting on this coast. Catch all five and the frame that leads on appears.' } },
   fly: { anchor: 'fly', keys: [[[{ zh: '空格', en: 'Space' }], { zh: '振伞起飞', en: 'take off' }], [['Shift'], { zh: '加速，降落', en: 'faster, and down' }]],
     text: { zh: '按住空格，阳伞会带你飞起来。飞着去找下一道光。在空中按住 Shift 飞得更快，并且很快降下来。', en: 'Hold Space and the parasol carries you up. Fly to the next beam of light. In the air, hold Shift to go faster and to come down quickly.' },
     touch: { zh: '在屏幕右下方点一下是跳，按住不放，阳伞会带你飞起来。飞着去找下一道光。', en: 'At the lower right of the screen a tap is a jump. Hold, and the parasol carries you up. Fly to the next beam of light.' } },
+  ring: { anchor: 'marker', text: { zh: '金色的圆环指向最近的一幅画，下面的数字是距离。走到光柱里，画就开始了。', en: 'The golden ring points to the nearest painting, with how far it is. Step into the beam of light and the painting begins.' } },
   seek: { anchor: 'seek', keys: [[['G'], { zh: '寻光', en: 'seek' }]],
-    text: { zh: '不知道往哪走的时候按 G，她会自己去找下一道光。', en: 'When you do not know where to go, press G and she finds the next beam herself.' },
-    touch: { zh: '不知道往哪走的时候点寻光，她会自己去找下一道光。', en: 'When you do not know where to go, tap Seek and she finds the next beam herself.' } },
+    text: { zh: '找不到下一幅画？按 G，她会自己走过去。再按一次就停下。', en: 'Cannot find the next painting? Press G and she walks there by herself. Press it again to stop.' },
+    touch: { zh: '找不到下一幅画？点上方的「寻光」，她会自己走过去。再点一次就停下。', en: 'Cannot find the next painting? Tap Seek at the top and she walks there by herself. Tap it again to stop.' } },
   free: { anchor: 'free', keys: [[['F'], { zh: '取景', en: 'frame' }]],
     text: { zh: '看到喜欢的画面，随时可以取景，把它收成自己的画。', en: 'Whenever you see something you love, frame it and keep it as a picture of your own.' } },
   season: { anchor: 'season', text: { zh: '这些标签是这里的天色和季节，亮着的是现在。换一种，同一处风景就是另一幅画。', en: 'These labels are the weather and the seasons here, and the bright one is now. Under another, the same view is another painting.' } },

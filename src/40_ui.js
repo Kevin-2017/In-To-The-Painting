@@ -41,9 +41,9 @@ const App = {
   later(name, ms, fn) { clearTimeout(this.timers[name]); this.timers[name] = setTimeout(fn, ms); },
 
   init() {
-    const nav = (navigator.language || 'zh').toLowerCase();
-    this.lang = LS.get('ruhua.lang', nav.startsWith('zh') ? 'zh' : 'en');
+    this.lang = LS.get('ruhua.lang', 'en') === 'zh' ? 'zh' : 'en'; // English, until she chooses otherwise at the top of the title
     this.coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (ENERGY) { LESSONS.fly.text = FLY_ENERGY.text; LESSONS.fly.touch = FLY_ENERGY.touch; } // (0.9) flying is taught with its beats
     this.ended = LS.get('ruhua.monet.fin', '') === '1';
     if (this.coarse) $('app').classList.add('coarse');
     try { this.frees = JSON.parse(LS.get('ruhua.monet.free', '[]')) || []; } catch (e) { this.frees = []; }
@@ -66,11 +66,13 @@ const App = {
     g.quality = this.coarse ? 1 : 2;
     const sq = LS.get('ruhua.monet.q', '');
     if (sq !== '') { g.quality = clamp(parseInt(sq, 10) || 0, 0, 2); g.autoQuality = false; }
+    else if (this.coarse) g.setSaver(parseInt(LS.get('ruhua.monet.sv', '0'), 10) || 0); // a phone begins on the step it was found able to paint with time to spare
     else {
       // what this machine was found able to keep up with on an earlier visit is where it begins now (it may still go lower)
       const sa = LS.get('ruhua.monet.qa', '');
       if (sa !== '') g.quality = Math.min(g.quality, clamp(parseInt(sa, 10) || 0, 0, 2));
     }
+    if (this.coarse) g.saver = true; // thirty pictures a second on a phone, whatever setting was chosen by hand
     this.fit();
     window.addEventListener('resize', () => this.fit());
     // build the first painting on the next frames so the loading line can show first
@@ -82,6 +84,8 @@ const App = {
       $('loading').classList.add('gone');
       this.last = performance.now();
       const loop = (now) => {
+        // a phone or a tablet is given thirty pictures a second, not sixty or more: half the work, and it stays cool in the hand
+        if (g.saver && now - this.last < 29) { requestAnimationFrame(loop); return; }
         const real = (now - this.last) / 1000, dt = Math.min(0.05, Math.max(0.001, real));
         this.last = now;
         try {
@@ -121,11 +125,12 @@ const App = {
     document.documentElement.lang = en ? 'en' : 'zh-Hans';
     $('app').classList.toggle('en', en);
     $('tTitle').textContent = this.t(UI.title); $('tTitle').className = en ? 'en' : '';
-    $('tSub').textContent = this.t(UI.sub);
+    $('tSub').textContent = this.t(UI.sub); $('tGoal').textContent = this.t(UI.goal);
     $('btnLang').innerHTML = en ? '中文 / <b>EN</b>' : '<b>中文</b> / EN';
     $('btnSeek').textContent = this.t(UI.seek); $('albLabel').textContent = this.t(UI.album);
     $('alTitle').textContent = this.t(UI.album); $('alClose').textContent = this.t(UI.backWorld);
-    $('soundHint').textContent = this.t(UI.soundHint);
+    $('soundTxt').textContent = this.t(this.coarse ? UI.soundTap : UI.soundHint);
+    this.mkD = '';
     $('btnLeave').textContent = this.t(UI.leave); $('btnShareNow').textContent = this.t(UI.shareNow);
     $('sQ').textContent = this.t(UI.quality); $('sV').textContent = this.t(UI.volume); $('sL').textContent = this.t(UI.language);
     $('q2').textContent = this.t(UI.qHigh); $('q1').textContent = this.t(UI.qMid); $('q0').textContent = this.t(UI.qLow);
@@ -142,6 +147,7 @@ const App = {
     if (this.saidId && WORKS[this.saidId]) { $('cpT').textContent = this.t(WORKS[this.saidId]); $('cpW').textContent = this.t(WORKS[this.saidId].when); }
     $('btnHelp').textContent = this.t(UI.help); $('hpTitle').textContent = this.t(UI.help); $('hpClose').textContent = this.t(UI.backWorld);
     $('btnFree').textContent = this.t(UI.free); $('dtSave').textContent = this.t(UI.save); $('dtDel').textContent = this.t(UI.del);
+    $('dtX').textContent = this.t(UI.shareX); $('dtIG').textContent = this.t(UI.shareIG); this.wallKey = '';
     this.helpBuild();
     if (this.lesson) this.lessonEnd(4);
     for (const b of $('segL').children) b.classList.toggle('active', b.dataset.l === this.lang);
@@ -154,26 +160,56 @@ const App = {
     if (this.panel) this.album();
     if (this.detail) this.openDetail(this.detail);
   },
-  count() { const n = Object.keys(this.game.caps).length; $('albCount').textContent = n ? String(n) : ''; },
+  count() {
+    const g = this.game, n = Object.keys(g.caps).length; let main = 0, all = 0;
+    for (const ch of WORLDS) for (const e of ch.effects) if (!e.hidden) { all++; if (g.caps[e.id]) main++; }
+    $('albCount').textContent = n ? main + ' / ' + all + (n > main ? ' +' + (n - main) : '') : '';
+  },
   show(id) { $(id).classList.add('on'); },
   hide(id) { $(id).classList.remove('on'); },
-  hint(key, secs, once) {
+  hint(key, secs, once, num) {
     if (once && this.hinted[key]) return;
+    { const wait = (this.cardUntil || 0) - performance.now() / 1000; if (wait > 0) { this.later('hintWait', wait * 1000 + 300, () => this.hint(key, secs, once, num)); return; } } // (the card of a world is read first)
     if (key === 'hintKeys' || key === 'hintTouch' || key === 'hintFly' || key === 'hintFlyTouch') return; // these are taught one at a time, when they first matter
     // nothing is written over the picture: a hint that comes up at an easel waits until she has stepped away
     const g = this.game;
-    if (g && g.mode === 'play' && (g.spot >= 0 || g.viewK > 0.2)) { this.heldHint = [key, secs, once]; return; }
+    if (g && g.mode === 'play' && (g.spot >= 0 || g.viewK > 0.2)) { this.heldHint = [key, secs, once, num]; return; }
     if (once) this.hinted[key] = true;
-    $('hint').textContent = this.t(UI[key]); this.show('hint');
+    $('hint').textContent = this.t(UI[key]).replace('#', num === undefined ? '' : String(num)); this.show('hint');
     this.later('hint', (secs || 7) * 1000, () => this.hide('hint'));
   },
-  cardText(ch) { const w = WORLD_TEXT[ch.id]; $('cdName').textContent = this.t(w.name); $('cdYrs').textContent = w.years; },
+  cardText(ch) {
+    const w = WORLD_TEXT[ch.id]; $('cdName').textContent = this.t(w.name); $('cdYrs').textContent = w.years;
+    this.frames($('cdWall'), ch); // under the name, the paintings of this place as frames: empty, until she has caught them
+    // and under the frames, in a sentence, what there is to do here
+    $('cdGoal').textContent = this.t(UI.goalWorld).replace(/#/g, numWord(ch.need, this.lang));
+  },
+  // the paintings of a world as a row of small frames: an empty one for each still to catch, her own picture in each one caught.
+  // Nothing is said about them. The empty frames say what there is to do
+  frames(box, ch) {
+    const g = this.game; box.querySelectorAll('i').forEach((el) => el.remove());
+    for (const x of ch.effects) { if (x.hidden) continue; const d = document.createElement('i'), got = g.caps[x.id]; if (got) { d.className = 'on'; if (got.length > 8) d.style.backgroundImage = 'url(' + got + ')'; } box.appendChild(d); }
+  },
+  // the same row, small, under the album button for as long as she walks in this world
+  wall() {
+    const g = this.game, ch = g.ch, gn = $('gain');
+    const key = ch.id + '|' + ch.effects.map((x) => (g.caps[x.id] ? 1 : 0)).join('');
+    if (key !== this.wallKey) {
+      this.wallKey = key;
+      if (!gn.querySelector('.nm')) { for (const cl of ['nm', 'ct']) { const el = document.createElement('span'); el.className = cl; gn.appendChild(el); } }
+      gn.querySelector('.ct').textContent = g.capCount(ch) + ' / ' + ch.need; // how many of this world she has, of how many there are
+      this.frames(gn, ch);
+    }
+    return gn;
+  },
 
   // ----- callbacks from the game -----
-  onLeave() { this.hide('hud'); this.hide('hint'); this.closeFinale(); $('capt').classList.remove('on'); this.hide('gain'); if (this.lesson) this.lessonEnd(6); this.closeAlbum(); this.closeHelp(); },
+  onLeave() { this.hide('hud'); this.hide('hint'); this.closeFinale(); $('capt').classList.remove('on'); $('gain').classList.remove('say'); if (this.lesson) this.lessonEnd(6); this.closeAlbum(); this.closeHelp(); },
   onCard(ch) {
     this.cardText(ch); this.show('card');
-    this.later('card', 5600, () => this.hide('card'));
+    this.later('card', 7800, () => this.hide('card'));
+    // for as long as the card stands (and while it fades) nothing else is said or shown: no lesson, no line of advice, no keys, no ring
+    this.cardUntil = performance.now() / 1000 + 8.7; this.hide('hint'); if (this.lesson) this.lessonEnd(1);
   },
   onArrive(ch) {
     this.show('hud'); this.dialKey = ''; this.thumbKey = ''; this.count();
@@ -182,11 +218,25 @@ const App = {
   onPhase() { this.dialKey = ''; this.thumbKey = ''; },
   onSpot(i) {
     this.thumbKey = '';
+    if (i < 0 && this.gainHere) { this.gainHere = false; this.gainUntil = performance.now() / 1000 + 6; } // she walks on from a catch: the row of frames stays six seconds more
     if (i >= 0) this.hide('hint'); // at an easel the picture is left alone: no words are laid over it
   },
   onAuto(on) { $('btnSeek').classList.toggle('active', !!on); },
+  // (0.9) the parasol is spent in the air: the row of beats shakes, and the first time it is said what that means
+  onDry() { const b = $('beats'); b.classList.remove('dry'); void b.offsetWidth; b.classList.add('dry'); this.hint('beatsDry', 9, true); },
+  // (0.9) the row of beats: as many marks as the parasol has, the spent ones hollow
+  beatsRow() {
+    const g = this.game, b = $('beats'), cap = g.beatsMax, on = ENERGY && cap !== Infinity && g.mode === 'play' && g.spot < 0 && g.viewK < 0.05 && !g.free && !this.panel && !this.finaleOn && !g.trans && performance.now() / 1000 >= (this.cardUntil || 0);
+    b.classList.toggle('on', on); if (!on) return;
+    const key = cap + '|' + g.beats;
+    if (key === this.beatsKey) return;
+    if (b.children.length !== cap) { b.innerHTML = ''; for (let i = 0; i < cap; i++) b.appendChild(document.createElement('i')); }
+    for (let i = 0; i < cap; i++) b.children[i].className = i < g.beats ? 'full' : '';
+    this.beatsKey = key;
+  },
   onFly() { this.later('hintF', 900, () => { if (this.game.mode === 'play' && this.game.spot < 0) this.hint(this.coarse ? 'hintFlyTouch' : 'hintFly', 9, true); }); },
   onSlide() { this.later('hintG', 500, () => { if (this.game.mode === 'play' && this.game.spot < 0) this.hint('hintSlide', 7, true); }); },
+  onSaver(step) { LS.set('ruhua.monet.sv', String(step)); },
   onQuality(q, found) {
     for (const b of $('segQ').children) b.classList.toggle('active', +b.dataset.q === q);
     if (found) LS.set('ruhua.monet.qa', String(q)); // the game itself stepped down: kept for the next visit
@@ -207,6 +257,10 @@ const App = {
     // a painting from off the path says only that it was hidden: how many more there are is not told before the ending
     this.reward(big || url, e.hidden ? { text: this.t(UI.hid), n: this.ended ? g.hidCount(ch) : 0, total: this.ended ? hid.length : 0, gold: true }
       : { text: this.t(WORLD_TEXT[ch.id].name) + (n >= main.length ? '　' + this.t(UI.whole) : ''), n, total: main.length, gold: n >= main.length });
+    if (ENERGY) { // (0.9) a painting may bring the parasol another beat: said when the picture has gone into the album
+      const cap = g.beatsCap(), was = this.capWas === undefined ? cap : this.capWas; this.capWas = cap;
+      if (cap > was) this.later('beatsUp', 9200, () => this.hint(cap === Infinity ? 'beatsAll' : 'beatsUp', 9, false, cap));
+    }
     if (!e.hidden && ch.door && n === ch.need) this.later('door', 7400, () => this.hint('hintDoor', 8));
     // the last of the twenty five: the picture is left to stand a while, then the ending begins of itself
     if (!e.hidden && !g.mainLeft() && !this.ended) { this.ended = true; LS.set('ruhua.monet.fin', '1'); this.finaleDue = performance.now() / 1000 + 9.5; }
@@ -292,9 +346,10 @@ const App = {
     this.count();
     const b = $('btnAlbum'); b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump');
     if (!chip) return;
-    const gn = $('gain'); gn.innerHTML = ''; gn.appendChild(document.createTextNode(chip.text));
-    for (let i = 0; i < chip.total; i++) { const d = document.createElement('i'); if (i < chip.n) d.className = 'on'; gn.appendChild(d); }
-    gn.classList.toggle('all', !!chip.gold); this.show('gain'); this.later('gain', 4600, () => this.hide('gain'));
+    // the frame of the one just caught fills, and the name of the place is said beside the row for a few seconds
+    const gn = this.wall(); gn.querySelector('.nm').textContent = chip.text;
+    gn.classList.toggle('all', !!chip.gold); gn.classList.add('say'); this.later('gain', 5200, () => gn.classList.remove('say'));
+    this.gainUntil = performance.now() / 1000 + 60; this.gainHere = true; // it stands while she is still at this easel (a minute at most), and a little after
   },
 
   // ----- the album -----
@@ -311,6 +366,7 @@ const App = {
       this.detail = id; mine.parentNode.classList.remove('gone'); mine.src = (f.k && g.big[f.k]) || f.u; mine.alt = this.t(UI.mine); $('dtHisBox').classList.add('gone'); $('detail').classList.add('solo');
       $('dtT').textContent = this.t(WORLD_TEXT[f.w].name); $('dtY').textContent = ''; $('dtW').textContent = this.freeMeta(f); $('dtA').textContent = ''; $('dtN').textContent = '';
       $('dtPrev').style.visibility = 'hidden'; $('dtNext').style.visibility = 'hidden'; $('dtDel').style.display = '';
+      $('dtCap').value = this.caption(id); this.prepCards(id);
       $('detail').scrollTop = 0; this.show('detail'); $('detail').setAttribute('aria-hidden', 'false');
       return;
     }
@@ -330,6 +386,7 @@ const App = {
     $('dtT').textContent = this.t(wk); $('dtY').textContent = wk.y; $('dtW').textContent = this.t(wk.when); $('dtA').textContent = this.t(wk.at); $('dtN').textContent = this.t(wk.note);
     const list = this.caught(), many = list.length > 1;
     $('dtPrev').style.visibility = many ? '' : 'hidden'; $('dtNext').style.visibility = many ? '' : 'hidden';
+    $('dtCap').value = this.caption(id); this.prepCards(id);
     $('detail').scrollTop = 0;
     this.show('detail'); $('detail').setAttribute('aria-hidden', 'false');
   },
@@ -348,6 +405,157 @@ const App = {
     const url = this.cardImage(mine, his, free ? this.t(WORLD_TEXT[f.w].name) : this.t(wk), meta) || (his ? this.cardImage(mine, null, this.t(wk), meta) : '');
     if (!url) return;
     this.offer(url, 'ruhua-' + (free ? 'view' : id) + '.png', $('shareImg'), $('dtTip'));
+  },
+  // ----- passing a picture on to X or Instagram -----
+  // the words that go with it: one line of her own about the picture. The address and the tags are added when it goes
+  caption(id) {
+    if (String(id).startsWith('free:')) { const f = this.frees[+id.slice(5)]; return f ? this.t(UI.capFree).replace('#', this.t(WORLD_TEXT[f.w].name)) : ''; }
+    return WORKS[id] ? this.t(UI.capWork).replace('#', this.t(WORKS[id])) : '';
+  },
+  // The two cards a picture may go out as, 16 to 9 for X and 4 to 5 for Instagram, are made as soon as it is taken down, so that
+  // they lie ready when a button is pressed: only in that moment does a browser let a page open a window or the share sheet
+  prepCards(id) {
+    const tok = (this.cardTok = (this.cardTok || 0) + 1), g = this.game; this.cards = {};
+    const free = String(id).startsWith('free:'), f = free ? this.frees[+id.slice(5)] : null, wk = free ? null : WORKS[id];
+    if (free ? !f : !wk) { this.cardsReady = Promise.resolve(); return; }
+    const load = (src) => new Promise((res) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+    const title = free ? this.t(WORLD_TEXT[f.w].name) : this.t(wk), when = free ? '' : this.t(wk.when);
+    const meta = free ? this.freeMeta(f) : when.includes(wk.y.slice(0, 4)) ? when : wk.y + '　' + when;
+    const blobOf = (cv) => new Promise((res) => { try { cv.toBlob((b) => res(b || null), 'image/png'); } catch (e) { res(null); } });
+    // (a canvas that holds a picture from elsewhere gives nothing back: then the card is made of her picture alone)
+    const make = async (mine, his, shape) => { let b = await blobOf(this.cardShaped(mine, his, title, meta, shape)); if (!b && his) b = await blobOf(this.cardShaped(mine, null, title, meta, shape)); return b ? { blob: b } : null; };
+    this.cardsReady = Promise.all([load(free ? (f.k && g.big[f.k]) || f.u : g.big[id] || g.caps[id]), !free && ORIG[id] ? load('img/' + id + '.jpg') : null,
+      this.fontsFor(this.lang === 'en' ? 'italic 500 62px "Cormorant Garamond"' : '900 46px "Noto Serif SC"', title + this.t(UI.title) + this.t(UI.sub)).catch(() => {})])
+      .then(async ([mine, his]) => { if (!mine || tok !== this.cardTok) return; const a = await make(mine, his, 'wide'), b = await make(mine, his, 'tall'); if (tok === this.cardTok) { this.cards.wide = a; this.cards.tall = b; } })
+      .catch(() => {});
+  },
+  // a card of a set shape: wide (1600 by 900) for X, tall (1080 by 1350) for Instagram. On the wide one hers and his stand side by side,
+  // on the tall one hers is large above and his smaller under it beside the words. One of his long panels lies under hers instead,
+  // across the card. Whatever is on it is set in the middle of the sheet, over one line at the foot that says where it came from
+  cardShaped(mine, his, title, meta, shape) {
+    const tall = shape === 'tall', en = this.lang === 'en', W = tall ? 1080 : 1600, H = tall ? 1350 : 900, M = tall ? 60 : 64;
+    const cv = document.createElement('canvas'), c = cv.getContext('2d'); cv.width = W; cv.height = H;
+    c.fillStyle = '#f7f3ea'; c.fillRect(0, 0, W, H); c.imageSmoothingQuality = 'high'; c.textBaseline = 'alphabetic';
+    const latin = '"Cormorant Garamond",Georgia,serif', han = '"Noto Serif SC","Songti SC","STSong",Georgia,serif', sans = '"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif', ink = '#1f2238';
+    const tFace = en ? latin : han, tWeight = en ? 'italic 500' : '900', tSize = en ? 62 : 46;
+    const put = (im, x, y, w, h) => { c.save(); c.shadowColor = 'rgba(30,30,50,0.28)'; c.shadowBlur = 22; c.shadowOffsetY = 8; c.fillStyle = '#fff'; c.fillRect(x, y, w, h); c.restore(); c.drawImage(im, x, y, w, h); };
+    const am = mine.width / mine.height, ah = his ? his.width / his.height : 0;
+    const label = (text, x, y) => { c.fillStyle = ink; c.globalAlpha = 0.62; c.font = '500 19px ' + sans; c.fillText(text, x, y); c.globalAlpha = 1; };
+    // words set in a width: on as few lines as allowed, in smaller letters if they must be
+    const wrap = (text, weight, size, face, maxW, maxLines) => {
+      for (let sz = size; sz >= size * 0.5; sz -= 2) {
+        c.font = weight + ' ' + sz + 'px ' + face;
+        const toks = /\s/.test(text) ? text.split(/(\s+)/) : Array.from(text), lines = []; let cur = '';
+        for (const t of toks) { if (cur.trim() && c.measureText(cur + t).width > maxW) { lines.push(cur.trim()); cur = t.trim() ? t : ''; } else cur += t; }
+        if (cur.trim()) lines.push(cur.trim());
+        if (lines.length <= maxLines) return { sz, lines };
+      }
+      c.font = weight + ' ' + Math.round(size * 0.5) + 'px ' + face; return { sz: Math.round(size * 0.5), lines: [text] };
+    };
+    // the name of the picture with its moment under it: measured first, so that the whole can be set in the middle, then drawn
+    const set = (maxW, maxLines) => { const t = wrap(title, tWeight, tSize, tFace, maxW, maxLines), m = meta ? wrap(meta, '400', 20, sans, maxW, 2) : { sz: 20, lines: [] }; return { t, m, lh: Math.round(t.sz * 1.14), h: (t.lines.length - 1) * Math.round(t.sz * 1.14) + Math.round(t.sz * 1.02) + (m.lines.length ? m.lines.length * 30 + 6 : 0) }; };
+    const draw = (b, x, y) => {
+      c.fillStyle = ink; c.globalAlpha = 1; c.font = tWeight + ' ' + b.t.sz + 'px ' + tFace; let yy = y + Math.round(b.t.sz * 0.8);
+      for (const ln of b.t.lines) { c.fillText(ln, x, yy); yy += b.lh; }
+      yy += Math.round(b.t.sz * 0.22) + 30 - b.lh; c.globalAlpha = 0.7; c.font = '400 ' + b.m.sz + 'px ' + sans;
+      for (const ln of b.m.lines) { c.fillText(ln, x, yy); yy += 30; }
+      c.globalAlpha = 1;
+    };
+    // the foot: the name of the game on the left, where to find it on the right
+    const FOOT = 58, foot = (l, r) => {
+      const y = H - M + 2, nm = this.t(UI.title); c.fillStyle = ink; c.textAlign = 'left';
+      c.globalAlpha = 0.92; c.font = en ? 'italic 500 31px ' + latin : '900 25px ' + han; c.fillText(nm, l, y);
+      const w1 = c.measureText(nm).width; c.globalAlpha = 0.6; c.font = '400 17px ' + sans; c.fillText(this.t(UI.sub), l + w1 + 18, y - 1);
+      c.textAlign = 'right'; c.globalAlpha = 0.74; c.font = '500 19px ' + sans; c.fillText(SITE_URL.replace(/^https?:\/\//, ''), r, y - 1); c.textAlign = 'left'; c.globalAlpha = 1;
+    };
+    const mineBy = this.t(UI.mineBy), hisBy = this.t(UI.hisBy), avail = H - 2 * M - FOOT, full = W - 2 * M, LAB = 34;
+    if (!tall && ah > 4.2) {
+      // his is one of the long panels: it runs across the sheet, hers above it on the left with the words beside her
+      const sh = Math.round(full / ah), mh = avail - sh - 2 * LAB - 30, mw = Math.round(mh * am), b = set(full - mw - 56, 3);
+      put(mine, M, M, mw, mh); label(mineBy, M, M + mh + 26); draw(b, M + mw + 56, M + Math.max(0, Math.round((mh - b.h) / 2)));
+      put(his, M, M + mh + LAB + 30, full, sh); label(hisBy, M, M + mh + LAB + 30 + sh + 26);
+      foot(M, W - M);
+    } else if (!tall && ah > 2.2) {
+      // his is wide and low: the two stand one over the other on the left, as wide as each other, the words on the right
+      const w = Math.min(Math.round((avail - 2 * LAB - 26) / (1 / am + 1 / ah)), Math.round(full * 0.56)), mh = Math.round(w / am), hh = Math.round(w / ah);
+      const blockH = mh + LAB + 26 + hh + LAB, y0 = M + Math.round((avail - blockH) / 2), b = set(full - w - 64, 3);
+      put(mine, M, y0, w, mh); label(mineBy, M, y0 + mh + 26); put(his, M, y0 + mh + LAB + 26, w, hh); label(hisBy, M, y0 + mh + LAB + 26 + hh + 26);
+      draw(b, M + w + 64, y0 + Math.max(0, Math.round((blockH - LAB - b.h) / 2)));
+      foot(M, W - M);
+    } else if (!tall) {
+      const gap = his ? 36 : 0, b0 = set(Math.round(full * 0.7), 1), h = Math.min(avail - LAB - 38 - b0.h, Math.round((full - gap) / (am + ah)));
+      const mw = Math.round(h * am), hw = Math.round(h * ah), x0 = Math.round((W - (mw + gap + hw)) / 2), b = set(mw + gap + hw, 1), y0 = M + Math.round((avail - (h + LAB + 38 + b.h)) / 2);
+      put(mine, x0, y0, mw, h); label(mineBy, x0, y0 + h + 26);
+      if (his) { put(his, x0 + mw + gap, y0, hw, h); label(hisBy, x0 + mw + gap, y0 + h + 26); }
+      draw(b, x0, y0 + h + LAB + 38);
+      foot(x0, W - x0);
+    } else if (his && ah > 2.2) {
+      // tall, and his is a long panel: hers, his under it as wide as she is, then the words
+      const b = set(full, 2), k = Math.min(1, (avail - 2 * LAB - 26 - 30 - b.h) / (full / am + full / ah)), w = Math.round(full * k), mh = Math.round(w / am), hh = Math.round(w / ah), x0 = Math.round((W - w) / 2);
+      const blockH = mh + LAB + 26 + hh + LAB + 30 + b.h; let y = M + Math.round((avail - blockH) / 2);
+      put(mine, x0, y, w, mh); label(mineBy, x0, y + mh + 26); y += mh + LAB + 26;
+      put(his, x0, y, w, hh); label(hisBy, x0, y + hh + 26); y += hh + LAB + 30;
+      draw(b, x0, y); foot(x0, W - x0);
+    } else {
+      const mw = full, mh = Math.round(mw / am);
+      if (his) {
+        const room = avail - mh - LAB - 30, hw = Math.min(Math.round(mw * 0.54), Math.round(room * ah)), hh = Math.round(hw / ah), tx = M + hw + 40, b = set(W - M - tx, 3);
+        const blockH = mh + LAB + 30 + Math.max(hh, LAB + 14 + b.h), y0 = M + Math.max(0, Math.round((avail - blockH) / 2)), y2 = y0 + mh + LAB + 30;
+        put(mine, M, y0, mw, mh); label(mineBy, M, y0 + mh + 26); put(his, M, y2, hw, hh);
+        label(hisBy, tx, y2 + 18); draw(b, tx, y2 + LAB + 14);
+      } else {
+        const b = set(full, 2), blockH = mh + LAB + 30 + b.h, y0 = M + Math.round((avail - blockH) / 2);
+        put(mine, M, y0, mw, mh); label(mineBy, M, y0 + mh + 26); draw(b, M, y0 + mh + LAB + 30);
+      }
+      foot(M, W - M);
+    }
+    return cv;
+  },
+  // a file handed to whoever is looking: inside Claude through the viewer (who is asked first), elsewhere as a download
+  download(blob, name) {
+    const link = () => { try { const u = URL.createObjectURL(blob), a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 8000); } catch (e) { /* the card is on the page to be saved by hand */ } };
+    const cl = window.claude;
+    if (cl && typeof cl.use === 'function') { Promise.resolve().then(() => cl.use('downloads')).then((d) => (d && d.save ? d.save({ filename: name, data: blob }) : Promise.reject({ code: 'unavailable' }))).catch((err) => { if (!err || (err.code !== 'declined' && err.code !== 'rate_limited')) link(); }); return; }
+    link();
+  },
+  // To X or to Instagram, with the words. On a phone the system's sheet carries the card (and for X the words too) into the app she
+  // picks there. At a desk X is opened with the words written and the card on the clipboard to be pasted in; Instagram is opened
+  // with the card saved as a file and the words on the clipboard. Whatever a browser refuses falls back to saving the card
+  shareTo(kind) {
+    const id = this.detail; if (!id) return;
+    const free = String(id).startsWith('free:'), tip = $('dtTip'), shape = kind === 'ig' ? 'tall' : 'wide', site = SITE_URL;
+    const text = ($('dtCap').value || this.caption(id)).trim(), tags = this.t(UI.capTags), full = text + '\n\n' + site.replace(/^https?:\/\//, '') + '\n' + tags;
+    const name = 'intothepainting-' + (free ? 'view' : id) + (kind === 'ig' ? '-4x5' : '-16x9') + '.png';
+    const ready = this.cards && this.cards[shape];
+    const card = ready ? Promise.resolve(ready) : (this.cardsReady || Promise.resolve()).then(() => (this.cards && this.cards[shape]) || Promise.reject(new Error('no card')));
+    const show = (cd) => { try { const im = $('shareImg'); if (this.shownUrl) URL.revokeObjectURL(this.shownUrl); this.shownUrl = URL.createObjectURL(cd.blob); im.src = this.shownUrl; im.hidden = false; } catch (e) { /* not shown */ } return cd; };
+    const say = (k, link) => { tip.textContent = this.t(UI[k]); if (link) { const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = ' ' + link.replace(/^https?:\/\//, '').split('?')[0]; tip.appendChild(document.createTextNode(this.t(UI.tipOpen))); tip.appendChild(a); } };
+    const copyText = () => { try { return navigator.clipboard.writeText(full); } catch (e) { return Promise.reject(e); } };
+    const save = () => card.then((cd) => this.download(cd.blob, name));
+    const open = (url) => { let w = null; try { w = window.open(url, '_blank'); if (w) w.opener = null; } catch (e) { w = null; } return w; };
+    card.then(show).catch(() => {});
+    const desk = () => {
+      if (kind === 'x') {
+        const intent = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(site) + '&hashtags=' + encodeURIComponent(tags.replace(/#/g, '').trim().split(/\s+/).join(','));
+        let copied;
+        try { copied = navigator.clipboard.write([new ClipboardItem({ 'image/png': ready ? ready.blob : card.then((cd) => cd.blob) })]); } catch (e) { copied = Promise.reject(e); }
+        const w = open(intent);
+        copied.then(() => say('tipXPaste', w ? null : intent), () => { save().catch(() => {}); say('tipXSaved', w ? null : intent); });
+      } else {
+        copyText().catch(() => {}); save().catch(() => {});
+        const w = open('https://www.instagram.com/');
+        say('tipIGDesk', w ? null : 'https://www.instagram.com/');
+      }
+    };
+    if (this.coarse && navigator.share && navigator.canShare) {
+      if (kind === 'ig') copyText().catch(() => {});
+      const go = (cd) => { const file = new File([cd.blob], name, { type: 'image/png' }); if (!navigator.canShare({ files: [file] })) throw new Error('files'); return navigator.share(kind === 'ig' ? { files: [file] } : { files: [file], text: full }); };
+      say(kind === 'ig' ? 'tipSheetIG' : 'tipSheetX');
+      let p; try { p = ready ? go(ready) : card.then(go); } catch (e) { p = Promise.reject(e); }
+      Promise.resolve(p).catch((err) => { if (err && err.name === 'AbortError') return; desk(); });
+      return;
+    }
+    desk();
   },
   cardImage(mine, his, title, meta) {
     const cv = document.createElement('canvas'), c = cv.getContext('2d'), k = mine.height >= 700 ? 1.55 : 1, M = Math.round(56 * k), H = Math.round(560 * k), px = (n) => Math.round(n * k);
@@ -511,6 +719,7 @@ const App = {
     else if (an === 'leave') r = rect($('btnLeave'));
     else if (an === 'thumbs') r = rect($('thumbs'));
     else if (an === 'fly' && this.coarse) r = rect($('flybtn'));
+    else if (an === 'marker') r = this.markOn ? rect($('marker').firstChild) : null;
     else if (an === 'pillar') {
       const t = g.targetScreen();
       if (t && !t.behind) { const x = (t.nx * 0.5 + 0.5) * W, y = (1 - (t.ny * 0.5 + 0.5)) * H; if (x > 30 && x < W - 30 && y > 60 && y < H - 100) r = { x: x - 24, y: y - 92, w: 48, h: 108 }; }
@@ -544,21 +753,41 @@ const App = {
     this.learnAt = now;
     if (!this.seen) return;
     if (this.panel || this.helpOn || this.detail || g.free || this.finaleOn) { if (this.lesson) this.lessonEnd(5); return; }
+    if (now < (this.cardUntil || 0)) { this.gapUntil = Math.max(this.gapUntil, this.cardUntil + 0.5); return; } // the card of a world is read first
     const p = g.pl, n = Object.keys(g.caps).length, atEasel = g.spot >= 0 && g.viewK > 0.9, away = g.spot < 0 && g.viewK < 0.05, sp = Math.hypot(p.vx, p.vz);
     // how long she has wandered since the last catch, and how long she has stood looking
     if (n !== this.capN) { this.capN = n; this.lostT = 0; }
     this.lostT = atEasel ? 0 : away && !g.auto ? this.lostT + dt : this.lostT;
     this.idleT = away && sp < 0.6 && p.alt < 0.1 ? this.idleT + dt : 0;
     if (atEasel && this.phaseSeen < 0) this.phaseSeen = g.phase;
+    // is she getting anywhere? The nearest she has come to the place the ring shows is kept; when that stops shrinking she has lost
+    // her way. Then the ring calls, and a line says what it is and that she can be led; if water lies between, that it carries her
+    const tg = away && !g.auto ? g.target() : null;
+    if (!tg) { this.strayT = 0; this.bestD = 1e9; this.tgKey = ''; }
+    else {
+      const key = tg.kind + Math.round(tg.x) + ',' + Math.round(tg.z), d = Math.hypot(tg.x - p.x, tg.z - p.z);
+      if (key !== this.tgKey || d < this.bestD - 5) { this.tgKey = key; this.bestD = d; this.strayT = 0; } else this.strayT = (this.strayT || 0) + dt;
+      const W = g.cur, high = !!W && d < 45 && p.alt < 0.5 && g.groundAt(W, tg.x, tg.z) - (p.yAbs === undefined ? 0 : p.yAbs) > 3.5; // the place stands well above her (a bridge, a cliff)
+      // She is told, and told again for as long as it lasts: the ring calls, the word Seek at the top calls, and a card says that G (or
+      // Seek) makes her walk there by herself. In her first paintings it comes sooner. Once for each place, if that place stands high
+      // above her or across water, the line says how to get there instead
+      if (this.strayT > (high ? 9 : n < 3 ? 10 : 14) && (d > 20 || high) && !this.lesson && now > (this.strayNudge || 0) && now >= this.gapUntil) {
+        this.strayNudge = now + 38; this.callUntil = now + 13; this.seekCalled = true;
+        let wet = false;
+        if (W && W.waterY !== null && W.waterY !== undefined && p.alt < 0.5) for (let q = 4; q < Math.min(d, 70) && !wet; q += 4) { const x = p.x + ((tg.x - p.x) / d) * q, z = p.z + ((tg.z - p.z) / d) * q; if (W.h(x, z) < W.waterY - 0.05) wet = true; }
+        const special = high ? (this.coarse ? 'hintUpTouch' : 'hintUp') : wet && !g.slid ? 'hintWater' : null;
+        if (special && this.saidFor !== key) { this.saidFor = key; this.hint(special, 9); } else this.lessonShow('seek');
+      }
+    }
     const L = this.lesson;
     if (L) {
       const age = now - L.at, id = L.id;
       let done = false, max = 9, ok = true;
       if (id === 'move') { this.walked += sp * dt; ok = away; done = this.walked > 4; max = 14; }
       else if (id === 'arc') { ok = atEasel; done = n > 0; max = 10; }
-      else if (id === 'album') { done = this.albumSeen; max = 7; }
+      else if (id === 'album') { done = this.albumSeen; max = 11; }
       else if (id === 'fly') { ok = away; done = !!g.flown && age > 2; max = 13; }
-      else if (id === 'seek') { ok = away; done = !!g.auto; }
+      else if (id === 'seek') { ok = away; done = !!g.auto; max = 13; }
       else if (id === 'free') ok = away;
       else if (id === 'handSeason' || id === 'handSun') { ok = atEasel; done = !g.needHand && age > 1.5; max = 11; }
       else { ok = atEasel; max = 8; }
@@ -575,6 +804,7 @@ const App = {
     else if (!S.album && n >= 1 && now - this.capAt > 7.2) id = 'album';
     else if (!S.met && away && this.metAt && now - this.metAt > 2.5 && now - this.metAt < 30) id = 'met';
     else if (!S.fly && away && n >= 1 && !g.flown && this.lostT > 2.5) id = 'fly';
+    else if (!S.ring && away && n >= 1 && this.markOn && this.lostT > 5) id = 'ring';
     else if (!S.handSeason && atEasel && g.needHand === 'season' && g.handT > 1.2) id = 'handSeason';
     else if (!S.handSun && atEasel && g.needHand === 'sun' && g.handT > 1.2) id = 'handSun';
     else if (atEasel && g.needHand && g.handT > 8 && now > (this.nudgeAt || 0)) { id = g.needHand === 'sun' ? 'handSun' : 'handSeason'; this.nudgeAt = now + 22; } // still waiting: said once more
@@ -582,7 +812,7 @@ const App = {
     else if (!S.thumbs && atEasel && n >= 3 && this.thumbsMixed) id = 'thumbs';
     else if (!S.sun && atEasel && n >= 5 && !g.paintE && g.restT <= 0) id = 'sun';
     else if (!S.free && away && n >= 2 && this.idleT > 1.5) id = 'free';
-    else if (!S.seek && away && n >= 1 && this.lostT > 34 && !g.auto) id = 'seek';
+    else if (!S.seek && away && n >= 1 && (this.lostT > 26 || this.strayT > 8) && !g.auto) id = 'seek';
     if (id) this.lessonShow(id);
   },
   // ----- the ending: her twenty five pictures hang themselves on a wall while the days go by behind them -----
@@ -687,6 +917,14 @@ const App = {
   // ----- per frame: the dial, the frame, the little pictures, the ring -----
   frame() {
     const g = this.game;
+    { // where a browser holds the sound back until the page is touched (at first, or after a call or another app took it), a line says so, and goes as soon as it plays
+      const a = this.audio, c = a && a.ctx, now = performance.now();
+      const need = !!c && c.state !== 'running' && a.vol > 0.005 && !document.hidden && !this.panel && (g.mode === 'title' || g.mode === 'play');
+      if (!need) this.sndSince = 0; else if (!this.sndSince) this.sndSince = now;
+      const on = need && now - this.sndSince > 700, el = $('soundHint');
+      if (on !== !!this.sndOn) { this.sndOn = on; el.classList.toggle('on', on); }
+      if (on) el.classList.toggle('play', g.mode !== 'title');
+    }
     if (g.mode === 'title' && this.audio) { // the title has its music too: the ground of the first world in the night, the melody as the day breaks
       const run = !!(this.audio.ctx && this.audio.ctx.state === 'running');
       if (run && this.audio.group) { this.audio.setNight(isNight(g.t) ? 1 : 0); if (this.audio.setIntensity) this.audio.setIntensity(0.3); }
@@ -705,13 +943,17 @@ const App = {
       this.audio.setTheme(te ? te.id : null);
     }
     if (g.spot < 0 && g.viewK < 0.05) {
-      if (this.heldHint) { const h = this.heldHint; this.heldHint = null; this.hint(h[0], h[1], h[2]); }
+      if (this.heldHint) { const h = this.heldHint; this.heldHint = null; this.hint(h[0], h[1], h[2], h[3]); }
     }
     if (this.finaleDue) { const now = performance.now() / 1000; if (now > this.finaleDue || (g.spot < 0 && g.viewK < 0.05 && now > this.capAt + 4.5)) { this.finaleDue = 0; this.openFinale(true); } }
     // the interface comes in piece by piece: the sun's road at the first easel, the album and the rest with the first painting, the seasons when one first changes
-    const nc = Object.keys(g.caps).length, app = $('app');
+    const nc = Object.keys(g.caps).length, app = $('app'), nowS0 = performance.now() / 1000;
     if (g.spot >= 0 || nc > 0) this.dialShown = true;
-    app.classList.toggle('hide-more', nc === 0);
+    app.classList.toggle('hide-more', nc === 0); app.classList.toggle('hide-seek', nc === 0 && !this.seekCalled); $('btnSeek').classList.toggle('call', nowS0 < (this.callUntil || 0) && !g.auto);
+    const nowS = performance.now() / 1000, carded = nowS < (this.cardUntil || 0);
+    // the row of frames under the album: it comes when a painting is caught and goes a few seconds after she has walked on, so that the land is left to be looked at
+    { const on = g.mode === 'play' && !g.free && nowS < (this.gainUntil || 0); $('gain').classList.toggle('on', on); if (on) this.wall(); }
+    if (ENERGY) this.beatsRow();
     app.classList.toggle('hide-dial', !this.dialShown && !g.free);
     app.classList.toggle('hide-dots', nc < 2 && g.wi === 0 && !(this.seen && this.seen.season));
     app.classList.toggle('framing', !!g.free);
@@ -781,26 +1023,31 @@ const App = {
       th.classList.toggle('on', k > 0.3);
     } else th.classList.remove('on');
     this.learnTick();
-    // the ring that points to the next place
-    const mk = $('marker'), t = k < 0.05 && !this.panel && !g.free ? g.targetScreen() : null;
-    if (!t || t.dist < 16) { mk.classList.remove('on'); return; }
-    const W = g.cssW, H = g.cssH, pad = 30;
-    let x = (t.nx * 0.5 + 0.5) * W, y = (1 - (t.ny * 0.5 + 0.5)) * H;
-    const off = t.behind || x < pad || x > W - pad || y < pad || y > H - 130;
-    if (!off) { mk.classList.remove('on'); return; }
-    let dx = x - W / 2, dy = y - H / 2;
-    if (t.behind) { const l = Math.hypot(dx, dy) || 1; dx = (dx / l) * W; dy = (dy / l) * H; }
-    const s = Math.min((W / 2 - pad) / (Math.abs(dx) || 1), (H / 2 - pad) / (Math.abs(dy) || 1));
-    x = clamp(W / 2 + dx * s, pad, W - pad); y = clamp(H / 2 + dy * s, pad + 40, H - 140);
-    mk.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) rotate(' + (Math.atan2(dy, dx) + Math.PI / 2).toFixed(3) + 'rad)';
-    mk.classList.add('on');
+    // The ring that shows the next place, with how far it is. In sight, it stands on the place itself; out of sight, at the edge of
+    // the screen on the side where the place lies, with a point towards it
+    const mk = $('marker'), t = k < 0.05 && !this.panel && !g.free && !carded ? g.targetScreen() : null;
+    if (!t || (t.dist < 16 && t.up < 3.5)) { mk.classList.remove('on'); this.markOn = false; return; } // (near, the place itself is plain to see: unless it stands high above her)
+    const W = g.cssW, H = g.cssH, pad = 38;
+    let x = (t.nx * 0.5 + 0.5) * W, y = (1 - (t.ny * 0.5 + 0.5)) * H, rot = '';
+    const off = t.behind || x < pad || x > W - pad || y < pad + 40 || y > H - 130;
+    if (off) {
+      let dx = x - W / 2, dy = y - H / 2;
+      if (t.behind) { const l = Math.hypot(dx, dy) || 1; dx = (dx / l) * W; dy = (dy / l) * H; }
+      const s = Math.min((W / 2 - pad) / (Math.abs(dx) || 1), (H / 2 - pad) / (Math.abs(dy) || 1));
+      x = clamp(W / 2 + dx * s, pad, W - pad); y = clamp(H / 2 + dy * s, pad + 40, H - 140);
+      rot = 'rotate(' + (Math.atan2(dy, dx) + Math.PI / 2).toFixed(3) + 'rad)';
+    }
+    mk.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'; mk.firstChild.style.transform = rot;
+    const dist = Math.round(t.dist) + this.t(UI.metres); if (dist !== this.mkD) { this.mkD = dist; $('mkDist').textContent = dist; }
+    mk.classList.toggle('at', !off); mk.classList.toggle('call', performance.now() / 1000 < (this.callUntil || 0));
+    mk.classList.add('on'); this.markOn = true;
   },
 
   // ----- input -----
   bind() {
     const g = this.game, cv = $('view');
     const begin = (fresh) => {
-      this.audio.start(); $('soundHint').classList.remove('on');
+      this.audio.start();
       this.hide('title'); $('btnLang').style.display = 'none';
       if (fresh) { this.ended = false; LS.set('ruhua.monet.fin', ''); for (const id in g.caps) { PICS.del(id); delete g.big[id]; } }
       this.finaleDue = 0;
@@ -841,6 +1088,9 @@ const App = {
     $('alShow').addEventListener('click', () => { this.closeAlbum(); this.openFinale(false); });
     $('shutter').addEventListener('click', () => { if (g.free && g.freeK > 0.8) g.pendingFree = true; });
     $('dtSave').addEventListener('click', () => this.shareCard());
+    $('dtX').addEventListener('click', () => this.shareTo('x'));
+    $('dtIG').addEventListener('click', () => this.shareTo('ig'));
+    $('dtCap').addEventListener('keydown', (e) => e.stopPropagation()); // (typing the words must not walk her about)
     $('dtDel').addEventListener('click', () => { const id = String(this.detail || ''); if (!id.startsWith('free:')) return; const f = this.frees.splice(+id.slice(5), 1)[0]; if (f && f.k) { PICS.del(f.k); delete g.big[f.k]; } this.saveFrees(); this.closeDetail(); this.album(); });
     $('coach').addEventListener('click', () => { if (this.lesson) this.lessonEnd(6); });
     $('dtBack').addEventListener('click', () => this.closeDetail());
@@ -951,7 +1201,7 @@ const App = {
 };
 
 // test and debugging hooks
-window.__ruhua = App; App.SIGHTS = SIGHTS; // (for the tests and for the film camera)
+window.__ruhua = App; App.SIGHTS = SIGHTS; App.WORLDS = WORLDS; // (for the tests and for the film camera)
 function startApp(data) {
   if (data && data.save && typeof data.save.wi === 'number' && data.save.caps && !Game.loadSave()) Game._mem = data.save;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => App.init()); else App.init();

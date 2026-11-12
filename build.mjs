@@ -14,7 +14,9 @@ const tpl = fs.readFileSync(dir + 'index.template.html', 'utf8');
 // Without it they are left out, as in the copy that runs inside Claude
 const site = process.env.SITE || '';
 const head = site ? tpl.replace(/<!--\/?SITE-->\n?/g, '').split('https://DOMAIN/').join(site.endsWith('/') ? site : site + '/') : tpl.replace(/<!--SITE-->[\s\S]*?<!--\/SITE-->\n?/, '');
-const out = head.replace('/*__SCRIPT__*/', () => "(function () {\n'use strict';\n" + js + '\n})();');
+// ENERGY=1 builds the 0.9 line, in which the parasol has only so many beats in the air and the paintings bring more
+const energy = !!process.env.ENERGY;
+const out = head.replace('/*__SCRIPT__*/', () => "(function () {\n'use strict';\nconst ENERGY = " + energy + ';\n' + js + '\n})();');
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(outDir + 'index.html', out);
 // the reproductions of the originals travel beside the page

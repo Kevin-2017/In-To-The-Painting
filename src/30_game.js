@@ -86,7 +86,15 @@ function drawAir(S, cam, env, time, wind, centre, still, dens) {
 
 // some moments are not to be hurried. The first sunrise comes up slowly, is painted slowly, and is left to be looked at.
 // (It was slower still, rate 0.0064 and 5.5 s of painting: some 17 s from the eye settling to the picture. Now about 12.5)
-const PACE = { c1: { rate: 0.009, paint: 4.6, rest: 7 } };
+const PACE = { c1: { rate: 0.0147, paint: 4.0, rest: 7 } };
+// A phone or a tablet is kept cool: thirty pictures a second (the loop sees to that) on a setting it can paint in well under the
+// time it has. What one picture costs it is asked directly: now and then a frame is painted and one pixel of it read back at once,
+// which makes the machine finish the whole of it before it answers. (How fast the frames follow each other would say nothing
+// here: a browser may hold them to thirty a second by itself, to save the battery.) Three answers, the middle one counts. If
+// that is more than the step allows (its third number, in ms: about half of the 33 a frame has) it goes one step down: first the
+// same picture a little less sharp, then the plain setting. It is asked again every twenty seconds for as long as she plays, so
+// that a machine grown warm, and slower for it, is eased as well
+const SAVER = [[1, 1, 17], [1, 0.82, 22], [0, 1, 1e9]];
 const DAWN0 = 0.157; // the game begins here, in the night before that sunrise
 // lamps that burn while it is dark: x, z, height above the water or the ground, colour, size
 const LAMPS = {
@@ -116,6 +124,8 @@ class Game {
     this.dyn = new Strokes(MAX_DYN);
     this.auto = false; this.doorOn = false; this.doorT = 0; this.flash = 0;
     this.quality = 2; this.fpsAcc = 0; this.fpsN = 0; this.fpsHold = 6; this.autoQuality = true;
+    this.beats = 2; this.beatsMax = ENERGY ? 2 : Infinity; this.beatDry = false;
+    this.saver = false; this.saverStep = 0; this.resK = 1; this.costs = []; this.probeIn = 2.5; this.probeNext = false; this.lastCost = 0;
     this.cam = { pos: [0, 0, 0], fwd: [0, 0, -1], right: [1, 0, 0], up: [0, 1, 0], fov: TP_FOV };
     this.env = {}; this.envB = {};
     this.frame = { solidAppear: [0, 0], flowPhase: this.flowPhase, casters: [[], []], shadowOrigin: [0, 0], shadowSize: 400, shadowStrength: 0.9, hero: [0, 0, 0, 0],
@@ -162,6 +172,15 @@ class Game {
 
   // ----- worlds -----
   // the paintings of a world that everyone is shown, and those that stand off the path at an easel nobody points to
+  // (0.9) How many beats the parasol has before she must touch the ground again. Two at first; the paintings bring more:
+  // three from the second, then one more with every fourth (6, 10, 14, 18, 22), and each hidden painting adds one of its own.
+  // With all twenty five it no longer tires. In the 0.8 line it never did
+  beatsCap() {
+    if (!ENERGY) return Infinity;
+    let main = 0, hid = 0, left = false;
+    for (const ch of WORLDS) for (const e of ch.effects) { if (this.caps[e.id]) { if (e.hidden) hid++; else main++; } else if (!e.hidden) left = true; }
+    return left ? (main < 2 ? 2 : 3 + Math.floor((main - 2) / 4)) + hid : Infinity;
+  }
   capCount(ch) { let n = 0; for (const e of ch.effects) if (!e.hidden && this.caps[e.id]) n++; return n; }
   hidCount(ch) { let n = 0; for (const e of ch.effects) if (e.hidden && this.caps[e.id]) n++; return n; }
   mainLeft() { for (const ch of WORLDS) for (const e of ch.effects) if (!e.hidden && !this.caps[e.id]) return true; return false; }
@@ -406,7 +425,7 @@ class Game {
     const y = this.groundAt(this.cur, t.x, t.z) + 1.6, m = this.R.vpMain;
     const cx = m[0] * t.x + m[4] * y + m[8] * t.z + m[12], cy = m[1] * t.x + m[5] * y + m[9] * t.z + m[13], cw = m[3] * t.x + m[7] * y + m[11] * t.z + m[15];
     const behind = cw <= 0.01, w = behind ? 0.01 : cw;
-    return { nx: (behind ? -1 : 1) * cx / w, ny: (behind ? -1 : 1) * cy / w, behind, dist: Math.hypot(t.x - this.pl.x, t.z - this.pl.z), kind: t.kind };
+    return { nx: (behind ? -1 : 1) * cx / w, ny: (behind ? -1 : 1) * cy / w, behind, dist: Math.hypot(t.x - this.pl.x, t.z - this.pl.z), up: y - 1.6 - (this.pl.yAbs === undefined ? y - 1.6 : this.pl.yAbs), kind: t.kind };
   }
   // where the walker might go next: the nearest place with a painting still to catch, else the frame
   target() {
@@ -526,12 +545,20 @@ class Game {
     this.flapT = Math.max(0, (this.flapT || 0) - dt);
     this.liftT = Math.max(0, (this.liftT || 0) - dt);
     this.flapK = Math.max(0, (this.flapK || 0) - dt * 2.6);
+    // (0.9) the parasol has only so many beats in the air; on the ground, or on the water, it has them all again.
+    // Led to the next painting by the light she is carried: those beats are not counted
+    const cap = this.beatsMax = this.beatsCap(), led = !!this.auto || this.autoLift > 0;
+    if (!inAir) { this.beats = cap; this.beatDry = false; }
     if (hold && this.flapT <= 0 && p.alt < maxAlt - 1) {
-      p.valt = Math.max(p.valt, 0) * 0.4 + 9.5; this.flapT = 0.44; this.liftT = 0.9; this.flapK = 1;
-      if (!inAir) { p.yAbs = gy0 + 0.1; p.alt = 0.1; inAir = true; }
-      if (mz > 0.2 && hs0 < 21 && !(this.auto && near < 24)) { const a = this.auto ? fwdYaw : this.camYaw; p.vx += Math.sin(a) * 3.2; p.vz -= Math.cos(a) * 3.2; }
-      if (this.audio) this.audio.flap();
-      if (!this.flown) { this.flown = true; this.ui.onFly(); }
+      if (cap !== Infinity && !led && this.beats <= 0) { this.flapT = 0.44; if (!this.beatDry) { this.beatDry = true; this.ui.onDry(); } } // spent: she glides
+      else {
+        if (cap !== Infinity && !led) this.beats--;
+        p.valt = Math.max(p.valt, 0) * 0.4 + 9.5; this.flapT = 0.44; this.liftT = 0.9; this.flapK = 1;
+        if (!inAir) { p.yAbs = gy0 + 0.1; p.alt = 0.1; inAir = true; }
+        if (mz > 0.2 && hs0 < 21 && !(this.auto && near < 24)) { const a = this.auto ? fwdYaw : this.camYaw; p.vx += Math.sin(a) * 3.2; p.vz -= Math.cos(a) * 3.2; }
+        if (this.audio) this.audio.flap();
+        if (!this.flown) { this.flown = true; this.ui.onFly(); }
+      }
     }
     const waterY = W.waterY, hh = (x, z) => { const h = W.h(clamp(x, -790, 790), clamp(z, -790, 790)); return waterY !== null && h < waterY ? waterY : h; };
     const base0 = hh(p.x, p.z), onWater = waterY !== null && gy0 <= waterY + 0.001, snowy = !!(this.envNow && this.envNow.snow > 0.5);
@@ -762,15 +789,15 @@ class Game {
   resize(cssW, cssH, dpr) {
     this.cssW = cssW; this.cssH = cssH; this.dpr = dpr;
     const q = this.quality;
-    let ratio = q === 2 ? Math.min(dpr, 2) : q === 1 ? Math.min(dpr, 1.5) : Math.min(dpr, 1);
+    let ratio = q === 2 ? Math.min(dpr, 2) : q === 1 ? Math.min(dpr, 1.5) : Math.min(dpr, this.saver ? 1.3 : 1); // (the plain setting on a phone: its small screen is given a little more than one pixel in three)
     const budget = q === 2 ? 3.4e6 : q === 1 ? 1.6e6 : 1.2e6;
-    ratio = Math.min(ratio, Math.sqrt(budget / Math.max(1, cssW * cssH)));
+    ratio = Math.min(ratio, Math.sqrt(budget / Math.max(1, cssW * cssH))) * (this.resK || 1);
     this.R.msaa = q === 0 ? 0 : 4;
     this.R.resize(Math.round(cssW * ratio), Math.round(cssH * ratio));
   }
   setQuality(q, manual) {
     this.quality = clamp(q | 0, 0, 2);
-    if (manual) this.autoQuality = false;
+    if (manual) { this.autoQuality = false; this.resK = 1; }
     this.resize(this.cssW, this.cssH, this.dpr);
     this.ui.onQuality(this.quality, !manual && this.autoQuality);
   }
@@ -778,7 +805,24 @@ class Game {
   // a second is given the middle one, which looks nearly the same; on the middle one it must fall under 24 before the plain
   // one is taken. It is the share of slow frames in three seconds that counts, not their mean, so one long frame (a world being
   // painted in the background, a picture being taken) decides nothing; and frames on which such work was done are left out
+  // the cool running of a phone: where it begins (the step found on an earlier visit), and one step down
+  setSaver(step) { this.saver = true; this.saverStep = clamp(step | 0, 0, SAVER.length - 1); const st = SAVER[this.saverStep]; this.quality = st[0]; this.resK = st[1]; }
+  saverDown() {
+    if (this.saverStep >= SAVER.length - 1) return;
+    const st = SAVER[++this.saverStep]; this.resK = st[1]; this.setQuality(st[0]); this.ui.onSaver(this.saverStep);
+  }
+  // what a timed frame cost, in ms
+  probed(ms) {
+    this.costs.push(ms);
+    if (this.costs.length < 3) { this.probeIn = 0.8; return; }
+    const m = this.costs.sort((a, b) => a - b)[1]; this.costs = []; this.lastCost = m;
+    if (m > SAVER[this.saverStep][2]) { this.saverDown(); this.probeIn = 2; } else this.probeIn = 20;
+  }
   trackFps(dt) {
+    if (this.saver) { // (a phone is judged by what a frame costs it, not by how fast the frames come)
+      if (this.autoQuality && !this.trans && !this.heavy && (this.mode === 'play' || this.mode === 'title') && (this.probeIn -= dt) <= 0) this.probeNext = true;
+      this.heavy = false; return;
+    }
     if (!this.autoQuality || this.quality === 0 || this.mode !== 'play' || this.pumped || this.heavy) { this.heavy = false; return; }
     if (this.fpsHold > 0) { this.fpsHold -= dt; return; }
     const limit = this.quality === 2 ? 1 / 45 : 1 / 24;
@@ -855,7 +899,7 @@ class Game {
   }
 
   render() {
-    const f = this.frame, R = this.R, tr = this.trans;
+    const f = this.frame, R = this.R, tr = this.trans, probeT = this.probeNext && !tr && !this.pending && !this.pendingFree ? performance.now() : 0;
     let q = 0, chA = this.ch, chB = this.ch, mixEnv = 0;
     if (tr) { q = clamp(tr.t / tr.dur, 0, 1); chA = tr.fromCh; chB = tr.toCh; mixEnv = sstep(0.25, 0.75, q); }
     // the hour: during a repainting, one world's light fades into the next
@@ -928,6 +972,10 @@ class Game {
     R.uploadDyn(this.dyn); R.uploadFigure(this.hero.d, this.hero.n);
     this.buildGlows(q, env);
     R.draw(f);
+    if (probeT) { // this frame is timed: one pixel is read back, and the machine answers only when the whole frame is painted
+      this.probeNext = false;
+      try { const gl = R.gl; gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, this.px || (this.px = new Uint8Array(4))); this.probed(performance.now() - probeT); } catch (e) { this.probeIn = 60; }
+    }
     if (this.pending) this.takePending();
     if (this.pendingFree) { this.pendingFree = false; const pic = this.take(); this.flash = 0.8; if (this.audio) this.audio.chime(3); this.ui.onFree(pic[0], this.ch, this.phase, this.t, pic[1]); }
   }
@@ -965,8 +1013,9 @@ class Game {
     if (this.mode !== 'play' || !this.cur) return;
     const day = clamp(0.6 + env.sunI, 0.6, 1.5);
     const vis = day * (1 - this.viewK) * (1 - (this.freeK || 0)); // no beams at an easel, nor in a view of her own
+    const lead = this.target(); // the place the ring shows: its beam is the strongest, so that by day too one beam stands out
     this.ch.spots.forEach((s, i) => {
-      const y = this.groundAt(this.cur, s.x, s.z), pu = 1 + 0.15 * Math.sin(t * 2 + i * 2);
+      const y = this.groundAt(this.cur, s.x, s.z), pu = 1 + 0.15 * Math.sin(t * 2 + i * 2), first = !!lead && lead.kind === 'spot' && lead.x === s.x && lead.z === s.z, kb = first ? 1.7 + 0.25 * Math.sin(t * 2.4) : 1;
       if (!this.spotFound(i)) { // not yet found: no beam, only a glint on the easel when she is not far off
         const g = sstep(48, 15, Math.hypot(s.x - this.pl.x, s.z - this.pl.z)) * vis * (0.55 + 0.45 * Math.sin(t * 3.3 + i));
         if (g > 0.01) { const ex = s.easel ? s.easel[0] : s.x + 1.2, ez = s.easel ? s.easel[1] : s.z + 0.6; R.glow(ex, this.groundAt(this.cur, ex, ez) + 1.5, ez, 0, 0.62 * g, 0.54 * g, 0.3 * g, 1.3, 1.3); }
@@ -976,7 +1025,7 @@ class Game {
       const k = (this.spotOpen(i) ? 1 : 0.3) * vis * (0.25 + 0.75 * grow);
       if (k < 0.01) return;
       R.glow(s.x, y + 1.2, s.z, 0, 0.7 * k, 0.6 * k, 0.36 * k, 3.6 * pu, 3.6 * pu);
-      R.glow(s.x, y, s.z, 1, 0.3 * k, 0.26 * k, 0.16 * k, 1.5, 64 * Math.max(0.04, grow));
+      R.glow(s.x, y, s.z, 1, 0.3 * k * kb, 0.26 * k * kb, 0.16 * k * kb, first ? 2.2 : 1.5, (first ? 78 : 64) * Math.max(0.04, grow));
     });
     if (this.doorOn && this.ch.door) {
       const d = this.ch.door, y = this.groundAt(this.cur, d.x, d.z), k = sstep(0, 2, this.doorT) * day * (1 - this.viewK), c = WORLDS[Math.min(this.wi + 1, WORLDS.length - 1)]._swatch[0];

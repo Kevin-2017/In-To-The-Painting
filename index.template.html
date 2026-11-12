@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -63,11 +63,16 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 #title h1 { margin: 0; font-weight: 900; font-size: clamp(52px, 10vw, 136px); line-height: 1.02; letter-spacing: 0.08em; }
 #title h1.en { font-family: var(--font-latin); font-weight: 500; font-style: italic; letter-spacing: 0; font-size: clamp(42px, 7.6vw, 108px); text-wrap: balance; }
 #title .sub { font-family: var(--font-meta); font-size: clamp(13px, 1.5vw, 16px); letter-spacing: 0.3em; opacity: 0.9; }
+#title .goal { font-family: var(--font-meta); font-size: clamp(13.5px, 1.45vw, 16px); letter-spacing: 0.1em; line-height: 1.6; opacity: 0.86; max-width: 32em; margin-top: -4px; }
 #title .acts { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
 .plaque { font-family: var(--font-display); font-size: 17px; letter-spacing: 0.24em; padding: 12px 26px 12px 28px; border: 1px solid var(--light); border-radius: 999px; background: rgba(31, 34, 56, 0.18); backdrop-filter: blur(3px); transition: background 0.25s, color 0.25s; }
 .plaque:hover { background: var(--light); color: var(--dusk); text-shadow: none; }
 .plaque.quiet { border-color: var(--line); color: var(--mute); }
-#soundHint { position: absolute; right: clamp(16px, 6vw, 76px); bottom: clamp(24px, 6vw, 80px); font-family: var(--font-meta); font-size: 12.5px; letter-spacing: 0.22em; color: var(--mute); pointer-events: none; }
+#soundHint { position: absolute; right: clamp(16px, 6vw, 76px); bottom: clamp(24px, 6vw, 80px); display: flex; align-items: center; gap: 9px; padding: 8px 16px 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: rgba(31, 34, 56, 0.34); font-family: var(--font-meta); font-size: 12.5px; letter-spacing: 0.2em; color: var(--light); pointer-events: none; z-index: 3; }
+#soundHint svg { width: 17px; height: 17px; flex: none; fill: currentColor; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+#soundHint.on { animation: sndcall 2.8s ease-in-out 0.9s infinite; }
+#soundHint.play { right: auto; bottom: auto; left: clamp(14px, 3vw, 30px); top: clamp(48px, 3vw + 36px, 64px); }
+@keyframes sndcall { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 .lang { position: absolute; top: clamp(14px, 4vw, 40px); right: clamp(16px, 6vw, 76px); font-family: var(--font-meta); font-size: 13px; letter-spacing: 0.14em; padding: 8px 10px; color: var(--mute); }
 .lang b { color: var(--light); font-weight: 500; }
 
@@ -78,7 +83,9 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 #tools .n { font-family: var(--font-latin); font-style: italic; font-size: 15px; letter-spacing: 0.02em; margin-left: 6px; font-variant-numeric: tabular-nums; display: inline-block; }
 /* the interface comes in piece by piece, each piece when it first means something */
 #tools button, #sundial, #seasons { transition: opacity 1.2s ease, width 0.9s ease, height 0.9s ease; }
-.hide-more #btnSeek, .hide-more #btnAlbum, .hide-more #btnHelp, .hide-dial #sundial { opacity: 0; pointer-events: none; }
+.hide-seek #btnSeek, .hide-more #btnAlbum, .hide-more #btnHelp, .hide-dial #sundial { opacity: 0; pointer-events: none; }
+#tools #btnSeek.call { color: var(--sun); border-bottom-color: var(--sun); opacity: 1; animation: seekcall 1.3s ease-in-out infinite; }
+@keyframes seekcall { 0%, 100% { text-shadow: 0 0 0 rgba(255, 198, 92, 0); } 50% { text-shadow: 0 0 14px rgba(255, 198, 92, 0.95); } }
 .hide-dots #seasons, .hide-dial #seasons { display: none; }
 .coarse #tools button { padding: 12px 12px; }
 #btnAlbum.bump .n { animation: bump 0.9s ease-out; }
@@ -88,9 +95,14 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 #print img { display: block; width: 100%; height: 100%; }
 .dab { position: absolute; left: 0; top: 0; pointer-events: none; border-radius: 45% 55% 50% 40%; will-change: transform, opacity; }
 #gain { position: absolute; top: clamp(48px, 3vw + 36px, 64px); right: clamp(18px, 3.4vw + 8px, 42px); display: flex; align-items: center; gap: 9px; font-family: var(--font-meta); font-size: 12.5px; letter-spacing: 0.18em; pointer-events: none; }
-#gain i { width: 7px; height: 7px; border-radius: 50%; border: 1px solid var(--light); }
-#gain i.on { background: var(--sun); border-color: var(--sun); box-shadow: 0 0 8px rgba(255, 198, 92, 0.7); }
-#gain.all { color: var(--sun); }
+#gain { gap: 6px; }
+#gain .nm { margin-right: 5px; opacity: 0; transition: opacity 0.9s ease; }
+#gain .ct { margin-right: 4px; font-family: var(--font-latin); font-style: italic; font-size: 15px; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; opacity: 0.92; }
+#gain.say .nm { opacity: 1; }
+#gain i { width: 18px; height: 12px; border-radius: 1.5px; border: 1px solid rgba(255, 250, 240, 0.62); background: rgba(31, 34, 56, 0.3) center / cover no-repeat; opacity: 0.85; transition: opacity 0.9s ease, box-shadow 0.9s ease, border-color 0.9s ease; }
+#gain i.on { border-color: var(--sun); opacity: 1; }
+#gain.say i.on { box-shadow: 0 0 9px rgba(255, 198, 92, 0.75); }
+#gain.all .nm { color: var(--sun); }
 /* framing a view of her own: a round button at the right keeps it */
 #shutter { position: absolute; right: clamp(18px, 4vw, 54px); top: 50%; width: 62px; height: 62px; margin-top: -31px; border-radius: 50%; border: 2px solid var(--light); background: rgba(31, 34, 56, 0.2); opacity: 0; visibility: hidden; transition: opacity 0.5s ease, visibility 0s linear 0.5s, transform 0.15s; }
 #shutter::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--light); opacity: 0.92; }
@@ -153,9 +165,23 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .metrow .mc { padding: 4px 12px; border: 1px dashed var(--line); border-radius: 999px; color: var(--mute); }
 .metrow .mc.got { border-style: solid; border-color: rgba(255, 198, 92, 0.7); color: inherit; }
 #hint { position: absolute; left: 50%; bottom: 116px; transform: translateX(-50%); width: max-content; max-width: min(92vw, 44em); text-align: center; font-family: var(--font-meta); font-size: 13.5px; letter-spacing: 0.14em; line-height: 1.8; pointer-events: none; }
-#marker { position: absolute; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 1.5px solid var(--sun); border-radius: 50%; opacity: 0; transition: opacity 0.5s; pointer-events: none; box-shadow: 0 0 10px rgba(255, 198, 92, 0.5); }
-#marker::after { content: ""; position: absolute; left: 50%; top: -9px; margin-left: -4px; border: 4px solid transparent; border-bottom-color: var(--sun); }
-#marker.on { opacity: 0.9; }
+#marker { position: absolute; left: 0; top: 0; width: 0; height: 0; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+#marker i { position: absolute; left: -14px; top: -14px; width: 28px; height: 28px; border: 2px solid var(--sun); border-radius: 50%; background: rgba(31, 34, 56, 0.42); box-shadow: 0 0 12px rgba(255, 198, 92, 0.6); }
+#marker i::before { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--sun); }
+#marker i::after { content: ""; position: absolute; left: 50%; top: -13px; margin-left: -6px; border: 6px solid transparent; border-bottom-color: var(--sun); }
+#marker.at i::after { display: none; }
+#marker span { position: absolute; left: 0; top: 19px; transform: translateX(-50%); white-space: nowrap; padding: 2px 8px; border-radius: 999px; background: rgba(31, 34, 56, 0.62); font-family: var(--font-meta); font-size: 12px; letter-spacing: 0.06em; color: var(--sun); }
+#marker.on { opacity: 1; }
+#marker.at.on { opacity: 0.9; }
+#marker.call i { animation: mkcall 1.2s ease-out infinite; }
+@keyframes mkcall { 0% { box-shadow: 0 0 0 0 rgba(255, 198, 92, 0.85); } 100% { box-shadow: 0 0 0 20px rgba(255, 198, 92, 0); } }
+/* (0.9) the beats the parasol has left: under the arc of the day, on a touch screen over the place where flying is held */
+#beats { position: absolute; left: 50%; bottom: calc(clamp(8px, 2.4vh, 22px) + 15px); transform: translateX(-50%); display: flex; gap: 7px; pointer-events: none; } /* (inside the arc of the day, which is empty there) */
+#beats i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--sun); background: rgba(31, 34, 56, 0.35); transition: background 0.25s ease; }
+#beats i.full { background: var(--sun); box-shadow: 0 0 8px rgba(255, 198, 92, 0.6); }
+#beats.dry { animation: beatsdry 0.42s ease; }
+@keyframes beatsdry { 0%, 100% { margin-left: 0; } 25% { margin-left: -6px; } 75% { margin-left: 6px; } }
+.coarse #beats { left: 78%; bottom: auto; top: calc(68% - 66px); }
 
 /* at an easel: the picture's edge, drawn round as the light is caught */
 #frame { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0; box-shadow: 0 0 0 200vmax rgba(31, 34, 56, 0.34); }
@@ -224,10 +250,14 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 .lg b { display: block; font-weight: 500; color: var(--light); letter-spacing: 0.1em; }
 
 /* arriving somewhere: a name and its years, then nothing */
-#card { display: flex; flex-direction: column; justify-content: center; padding: clamp(22px, 8vw, 110px); gap: 6px; }
+#card { display: flex; flex-direction: column; justify-content: center; padding: clamp(22px, 8vw, 110px); gap: 6px; background: linear-gradient(100deg, rgba(31, 34, 56, 0.58), rgba(31, 34, 56, 0.3) 44%, rgba(31, 34, 56, 0) 72%); } /* (a veil on the side of the words: by day the land behind them is bright) */
 #card h2 { margin: 0; font-size: clamp(38px, 6.6vw, 88px); font-weight: 900; letter-spacing: 0.12em; line-height: 1.1; }
 .en #card h2 { font-family: var(--font-latin); font-weight: 500; font-style: italic; letter-spacing: 0; text-wrap: balance; }
 #card .yrs { font-family: var(--font-latin); font-style: italic; font-size: clamp(22px, 3vw, 34px); font-variant-numeric: tabular-nums; opacity: 0.9; }
+#card .wl { display: flex; flex-wrap: wrap; gap: clamp(7px, 1vw, 12px); margin-top: clamp(14px, 2vw, 24px); }
+#card .wl i { width: clamp(30px, 3.6vw, 46px); aspect-ratio: 3 / 2; border: 1px solid rgba(255, 250, 240, 0.7); border-radius: 2px; background: rgba(255, 250, 240, 0.05) center / cover no-repeat; box-shadow: 0 2px 10px rgba(8, 10, 24, 0.35); }
+#card .wl i.on { border-color: var(--sun); }
+#card .gl { margin: clamp(12px, 1.8vw, 22px) 0 0; max-width: 31em; font-family: var(--font-meta); font-size: clamp(14px, 1.5vw, 17px); line-height: 1.75; letter-spacing: 0.08em; opacity: 0.94; }
 /* the ending: the world goes on turning behind a wall of her own pictures, and a few lines are said one after another */
 #finale { position: absolute; inset: 0; z-index: 6; overflow-y: auto; display: flex; padding: clamp(16px, 4vw, 44px); background: radial-gradient(ellipse at 50% 42%, rgba(31, 34, 56, 0.58), rgba(18, 20, 38, 0.86)); opacity: 0; visibility: hidden; transition: opacity 2.6s ease, visibility 0s linear 2.6s; touch-action: pan-y; }
 #finale.on { opacity: 1; visibility: visible; transition: opacity 2.6s ease, visibility 0s; }
@@ -311,10 +341,16 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 #detail p { margin: 16px 0 0; font-size: 16.5px; line-height: 2; letter-spacing: 0.04em; color: var(--light); }
 .en #detail p { font-family: var(--font-latin); font-size: 21px; line-height: 1.5; letter-spacing: 0; }
 @media (max-width: 720px) { #detail .pair { grid-template-columns: 1fr; } #detail figure img { max-height: 38vh; } }
-#detail .acts { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-family: var(--font-meta); font-size: 12.5px; letter-spacing: 0.16em; color: var(--mute); }
+#dtCap { display: block; width: 100%; max-width: 46em; margin-top: 22px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255, 250, 240, 0.04); color: var(--light); font: inherit; font-family: Georgia, "Times New Roman", "Noto Serif SC", "Songti SC", serif; font-size: 15px; line-height: 1.65; letter-spacing: 0.01em; resize: vertical; }
+.coarse #dtCap { font-size: 16px; }
+#dtCap:focus { outline: none; border-color: var(--sun); }
+#detail .acts { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-family: var(--font-meta); font-size: 12.5px; letter-spacing: 0.16em; color: var(--mute); }
 #detail .acts button { padding: 9px 20px; border: 1px solid var(--line); border-radius: 999px; color: var(--light); }
 #detail .acts button:hover { background: var(--light); color: var(--dusk); }
 #detail .acts button.quiet { border-color: transparent; color: var(--mute); padding: 9px 6px; }
+#detail .acts #dtX, #detail .acts #dtIG { border-color: var(--sun); color: var(--sun); }
+#detail .acts #dtX:hover, #detail .acts #dtIG:hover { background: var(--sun); color: var(--dusk); }
+#dtTip a { color: var(--sun); }
 #shareImg { display: block; max-width: min(100%, 760px); margin: 18px auto 0; box-shadow: 0 10px 34px rgba(8, 10, 24, 0.6); }
 #shareImg[hidden] { display: none; }
 .set { display: grid; grid-template-columns: 5.5em minmax(0, 320px); align-items: center; gap: 14px; font-family: var(--font-meta); font-size: 13.5px; letter-spacing: 0.12em; padding-top: 22px; border-top: 1px solid var(--line); }
@@ -340,6 +376,8 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
 .coarse .th { width: 56px; height: 38px; }
 .coarse #coach { pointer-events: none; }
 .lay-tall #thumbs { top: 58px; gap: 8px; }
+.lay-tall #gain { top: 116px; right: 16px; } /* on an upright phone the row of frames stands under the small pictures of the easel, not beside them */
+.lay-tall #soundHint.play { top: 108px; left: 14px; }
 .lay-tall #orig { left: 18px; bottom: 26px; }
 .lay-tall #shutter { top: auto; margin-top: 0; right: 22px; bottom: calc(var(--cb, 64px) + 138px); }
 .lay-low #shutter { right: auto; left: calc(var(--bs, 180px) / 2 - 31px); }
@@ -351,7 +389,7 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
 }
 @media (prefers-reduced-motion: reduce) {
   .fade, #album, #detail, #help, #capt, #finale, .fin p, .fin .acts, .wall i { transition-duration: 0.01s; }
-  #ogRing .dot, #coHalo.on { animation: none; }
+  #ogRing .dot, #coHalo.on, #soundHint.on, #marker.call i, #tools #btnSeek.call { animation: none; }
   #flash.go { animation: none; }
 }
 </style>
@@ -376,7 +414,8 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
       <button id="btnHelp" type="button"></button>
     </div>
     <div id="thumbs" class="fade"></div>
-    <div id="marker"></div>
+    <div id="marker"><i></i><span id="mkDist"></span></div>
+    <div id="beats" class="fade"></div>
     <div id="hint" class="shade fade"></div>
     <div id="met" class="shade fade"><span id="metK"></span><b id="metN"></b></div>
     <div id="orig" class="shade fade">
@@ -403,15 +442,16 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
     <div id="touch"><div id="stick"><i></i></div><div id="flybtn"></div></div>
   </div>
 
-  <div id="card" class="layer fade shade"><h2 id="cdName"></h2><div class="yrs" id="cdYrs"></div></div>
+  <div id="card" class="layer fade shade"><h2 id="cdName"></h2><div class="yrs" id="cdYrs"></div><div class="wl" id="cdWall"></div><p class="gl" id="cdGoal"></p></div>
 
   <div id="title" class="layer fade shade">
     <h1 id="tTitle"></h1>
     <div class="sub" id="tSub"></div>
+    <div class="goal" id="tGoal"></div>
     <div class="acts"><button class="plaque" id="btnStart" type="button"></button><button class="plaque quiet" id="btnFresh" type="button" hidden></button></div>
-    <div id="soundHint" class="fade"></div>
   </div>
   <button class="lang shade" id="btnLang" type="button" aria-label="Language"></button>
+  <div id="soundHint" class="fade shade" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.6v4.8h3.4L12 18V6L7.4 9.6H4z"/><path d="M15.4 9a4.3 4.3 0 0 1 0 6M17.9 6.6a7.7 7.7 0 0 1 0 10.8" fill="none"/></svg><span id="soundTxt"></span></div>
 
   <section id="album" aria-hidden="true">
     <header><button class="x" id="alClose" type="button"></button><h3 id="alTitle"></h3><button class="show" id="alShow" type="button" hidden></button></header>
@@ -449,7 +489,8 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
       <figure class="his" id="dtHisBox"><img id="dtHis" alt=""><figcaption id="dtHisL"></figcaption></figure>
     </div>
     <div class="txt"><h4 id="dtT"></h4><div class="meta"><span id="dtY"></span><span class="w" id="dtW"></span><span id="dtA"></span></div><p id="dtN"></p>
-      <div class="acts"><button id="dtSave" type="button"></button><button id="dtDel" class="quiet" type="button"></button><span id="dtTip"></span></div>
+      <textarea id="dtCap" rows="3" spellcheck="false" aria-label="caption"></textarea>
+      <div class="acts"><button id="dtX" type="button"></button><button id="dtIG" type="button"></button><button id="dtSave" type="button"></button><button id="dtDel" class="quiet" type="button"></button><span id="dtTip"></span></div>
       <img id="shareImg" alt="" hidden></div>
   </section>
 
