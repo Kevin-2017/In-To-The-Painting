@@ -1,0 +1,34 @@
+# builds (made by build.mjs)
+/dist*/
+/site/
+/site_*/
+/launch/ruhua-site.zip
+
+# working copies and backups from before there was a repository
+/stable/
+/backup_*/
+/src_probe/
+
+# rendered pictures, film frames and films, music renders
+/shots/
+/film/frames/
+/film/out/
+
+# raw downloads of the reproductions (the game uses orig/final and orig/hi)
+/orig/raw/
+/orig/hiraw/
+/orig/later/
+/orig/*.png
+/orig/q1.txt
+
+# test scratch
+/test/*.html
+/test/still_0_test
+/test/*.log
+/test/*.png
+__pycache__/
+node_modules/
+
+# briefs written for helper agents during development
+/AGENT*.md
+/FILM.md

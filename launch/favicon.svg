@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>入画 追光</title>
+  <!-- the sun on its road over the horizon, as on the dial in the game -->
+  <rect width="64" height="64" rx="14" fill="#1f2238"/>
+  <path d="M14 44A18 20 0 0 1 50 44" fill="none" stroke="#fffaf0" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
+  <path d="M11 44H53" fill="none" stroke="#fffaf0" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="23.5" cy="26.3" r="8.8" fill="#1f2238"/>
+  <circle cx="23.5" cy="26.3" r="6.3" fill="#ffc65c"/>
+</svg>

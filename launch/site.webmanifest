@@ -1,0 +1,26 @@
+{
+  "name": "Into the Painting",
+  "short_name": "Into the Painting",
+  "description": "A quiet 3D game. Walk into the paintings of Claude Monet. 入画 追光，走进莫奈的画里。",
+  "lang": "en",
+  "id": ".",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "background_color": "#1f2238",
+  "theme_color": "#1f2238",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
