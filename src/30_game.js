@@ -84,8 +84,9 @@ function drawAir(S, cam, env, time, wind, centre, still, dens) {
   }
 }
 
-// some moments are not to be hurried. The first sunrise comes up slowly, is painted slowly, and is left to be looked at
-const PACE = { c1: { rate: 0.0064, paint: 5.5, rest: 7 } };
+// some moments are not to be hurried. The first sunrise comes up slowly, is painted slowly, and is left to be looked at.
+// (It was slower still, rate 0.0064 and 5.5 s of painting: some 17 s from the eye settling to the picture. Now about 12.5)
+const PACE = { c1: { rate: 0.009, paint: 4.6, rest: 7 } };
 const DAWN0 = 0.157; // the game begins here, in the night before that sunrise
 // lamps that burn while it is dark: x, z, height above the water or the ground, colour, size
 const LAMPS = {

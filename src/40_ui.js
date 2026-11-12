@@ -869,7 +869,7 @@ const App = {
       if (e.code === 'KeyG' && !e.repeat) seek();
       if (e.code === 'KeyJ' && !e.repeat) this.panel ? this.closeAlbum() : this.openAlbum();
       if (e.code === 'KeyH' && !e.repeat) this.helpOn ? this.closeHelp() : this.openHelp();
-      if (e.code === 'KeyP' && !e.repeat && g.mode === 'play') this.toggleFree();
+      if ((e.code === 'KeyF' || e.code === 'KeyP') && !e.repeat && g.mode === 'play') this.toggleFree(); // F for frame (P still works)
       if ((e.code === 'Enter' || e.code === 'NumpadEnter') && g.free && g.freeK > 0.8 && !e.repeat) g.pendingFree = true;
       if (e.code === 'BracketLeft') g.setTime(g.t - 0.012);
       if (e.code === 'BracketRight') g.setTime(g.t + 0.012);
