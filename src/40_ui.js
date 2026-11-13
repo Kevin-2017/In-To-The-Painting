@@ -141,7 +141,10 @@ const App = {
       const c = $('fnC'), parts = this.t(UI.fnC).split('|'); c.textContent = '';
       parts.forEach((ph, i) => { const sp = document.createElement('span'); sp.textContent = ph; if (parts.length > 1) sp.className = i ? 'ph' : 'ph first'; c.appendChild(sp); });
     }
-    $('fnD').textContent = hidLeft ? this.t(hidLeft === 1 ? UI.fnD2one : UI.fnD2).replace('#', String(hidLeft)) : this.t(UI.fnD2all);
+    { const L = g ? this.leftOver() : { sights: 0, sightsAll: 0, hidAll: 0 };
+      $('fnD').textContent = hidLeft ? this.t(hidLeft === 1 ? UI.fnD2one : UI.fnD2).replace('#', String(hidLeft)) : L.sights ? this.t(UI.fnD3).replace('#', String(L.sights)) : this.t(L.sightsAll ? UI.fnDall : UI.fnD2all);
+      $('chT').textContent = this.t(UI.cheerT); $('chA').textContent = this.t(UI.cheerA).replace('#', String(L.hidAll)).replace('%', String(L.sightsAll)); $('chB').textContent = this.t(UI.cheerB);
+      $('chShow').textContent = this.t(UI.myShow); $('chBack').textContent = this.t(UI.fnBack); }
     $('fnShare').textContent = this.t(UI.save); $('fnShareL').textContent = this.t(UI.fnShare); $('fnX').textContent = this.t(UI.shareX); $('fnIG').textContent = this.t(UI.shareIG); $('fnBack').textContent = this.t(UI.fnBack); $('alShow').textContent = this.t(UI.myShow);
     { const b = $('fnB'), d = g ? g.days : 0; b.textContent = this.t(UI.fnB); if (d > 1) { const sm = document.createElement('small'); sm.textContent = this.t(UI.fnDays).replace('#', String(d)); b.appendChild(sm); } }
     $('alCredit').textContent = this.t(UI.credit);
@@ -301,10 +304,36 @@ const App = {
     this.reward(big || url, e.hidden ? { text: this.t(UI.hid), n: this.ended ? g.hidCount(ch) : 0, total: this.ended ? hid.length : 0, gold: true }
       : { text: this.t(WORLD_TEXT[ch.id].name) + (n >= main.length ? '　' + this.t(UI.whole) : ''), n, total: main.length, gold: n >= main.length });
     if (ENERGY && !g.mainLeft() && !e.hidden) this.later('beatsUp', 9200, () => this.hint('beatsAll', 9)); // (0.9) with the last painting the parasol no longer tires
+    if (e.hidden) this.later('mileHid', 9000, () => this.milestone('hid')); // (once the print has gone up into the album)
     // the last of the twenty five: the picture is left to stand a while, then the ending begins of itself
     if (!e.hidden && !g.mainLeft() && !this.ended) { this.ended = true; LS.set('ruhua.monet.fin', '1'); this.finaleDue = performance.now() / 1000 + 9.5; track('finished', { days: g.days }); }
   },
   onFound() { this.dialKey = ''; this.thumbKey = ''; this.hint('hintFound', 8); },
+  // what is still to be found in the whole game: paintings on the paths, hidden paintings, wonders
+  leftOver() {
+    const g = this.game, o = { main: 0, hid: 0, hidAll: 0, sights: 0, sightsAll: 0 };
+    for (const ch of WORLDS) { for (const e of ch.effects) { if (e.hidden) { o.hidAll++; if (!g.caps[e.id]) o.hid++; } else if (!g.caps[e.id]) o.main++; }
+      for (const x of SIGHTS.list(ch)) { o.sightsAll++; if (!g.met[x.id]) o.sights++; } }
+    return o;
+  },
+  // A step towards having found everything is said aloud (what: 'hid' after the last hidden painting, 'sight' after the last wonder).
+  // And when nothing at all is left she is congratulated and thanked, once
+  milestone(what) {
+    const L = this.leftOver();
+    if (!L.main && !L.hid && !L.sights) { this.cheer(); return; }
+    if (what === 'hid' && !L.hid && L.sights) this.hint(L.sights === 1 ? 'hidAllOne' : 'hidAll', 13, false, L.sights);
+    else if (what === 'sight' && !L.sights && !L.main && L.hid) this.hint(L.hid === 1 ? 'sightAllOne' : 'sightAll', 12, false, L.hid);
+  },
+  cheer() {
+    if (LS.get('ruhua.monet.cheer', '') === '1' || this.finaleOn || this.finaleDue) return;
+    LS.set('ruhua.monet.cheer', '1'); this.texts(); track('complete', { days: this.game.days });
+    this.show('cheer'); this.cheerOn = true;
+    const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+    // a run of the harp up through the key of the place, three times, each a little higher
+    try { const a = this.audio; if (a && a.ok()) for (let i = 0; i < 3; i++) this.later('cheer' + i, i * 620, () => a.chime(i)); } catch (e) { /* silence is fine */ }
+    this.later('cheerOff', 30000, () => this.cheerEnd());
+  },
+  cheerEnd() { if (!this.cheerOn) return; this.cheerOn = false; this.hide('cheer'); clearTimeout(this.timers.cheerOff); },
   // something met on the way: its name is said once, quietly, at the top of the screen, and it is kept in the album
   onSight(id) {
     const g = this.game, sp = SIGHTS.list(g.ch).find((x) => x.id === id);
@@ -314,6 +343,7 @@ const App = {
     // two small notes of glass in the key of the place: softer than the bells of a painting caught
     try { const a = this.audio; if (a && a.ok() && a.group) { const sc = a.group.score, t = a.ctx.currentTime + 0.03; a.note('glass', t, a.deg(sc, 4, 1), 0.06); a.note('glass', t + 0.18, a.deg(sc, 7, 1), 0.05); } } catch (e) { /* silence is fine */ }
     this.metAt = performance.now() / 1000;
+    this.later('mileSight', 6800, () => this.milestone('sight')); // (once its name has been read)
   },
   // a moment asked for again by a tap on its small picture has come round
   onReview(e) {
@@ -904,6 +934,7 @@ const App = {
     for (const k in this.timers) if (k.startsWith('fn')) clearTimeout(this.timers[k]);
     this.hide('finale'); $('finale').setAttribute('aria-hidden', 'true');
     if (this.game.mode === 'play') this.show('hud');
+    this.later('mileEnd', 1500, () => { const L = this.leftOver(); if (!L.main && !L.hid && !L.sights) this.cheer(); });
   },
   fontsFor(font, text) { // the letters of a card are drawn with the page's own faces where those can be had in time
     try { return Promise.race([document.fonts.load(font, text), new Promise((r) => setTimeout(r, 1600))]).catch(() => {}); } catch (e) { return Promise.resolve(); }
@@ -1141,7 +1172,7 @@ const App = {
     const begin = (fresh) => {
       this.audio.start(); this.audio.wake(true);
       this.hide('title'); $('btnLang').style.display = 'none';
-      if (fresh) { this.ended = false; LS.set('ruhua.monet.fin', ''); for (const id in g.caps) { PICS.del(id); delete g.big[id]; } }
+      if (fresh) { this.ended = false; LS.set('ruhua.monet.fin', ''); LS.set('ruhua.monet.cheer', ''); for (const id in g.caps) { PICS.del(id); delete g.big[id]; } }
       this.finaleDue = 0;
       g.begin(fresh); track(fresh || !Object.keys(g.caps).length ? 'begin' : 'continue', { paintings: Object.keys(g.caps).length, touch: this.coarse ? 1 : 0 });
       this.learnBegin(fresh); this.albumSeen = false; this.capShown = g.beatsCap(); this.mainShown = g.mainCount(); this.beatsKey = ''; // (0.9) what the row of beats shows to begin with
@@ -1176,6 +1207,9 @@ const App = {
       pr.addEventListener('pointerup', (e) => { if (sx !== null && Math.abs(e.clientX - sx) > 60) this.stepDetail(e.clientX < sx ? 1 : -1); sx = null; });
       pr.addEventListener('pointercancel', () => { sx = null; }); }
     $('fnBack').addEventListener('click', () => this.closeFinale());
+    $('chBack').addEventListener('click', () => this.cheerEnd());
+    $('cheer').addEventListener('click', (e) => { if (e.target === $('cheer')) this.cheerEnd(); }); // (a touch beside the card puts it away too)
+    $('chShow').addEventListener('click', () => { this.cheerEnd(); this.closeAlbum(); this.openFinale(false); });
     $('fnShare').addEventListener('click', () => this.sharePoster());
     $('fnX').addEventListener('click', () => this.shareTo('x', 'show')); $('fnIG').addEventListener('click', () => this.shareTo('ig', 'show'));
     $('alShow').addEventListener('click', () => { this.closeAlbum(); this.openFinale(false); });
@@ -1194,7 +1228,7 @@ const App = {
     $('vol').addEventListener('input', (e) => { const v = e.target.value / 100; this.audio.setVolume(v); LS.set('ruhua.vol', String(v)); });
     $('alSets').addEventListener('click', () => this.openSettings());
     $('btnRestart').addEventListener('click', () => {
-      this.closeAlbum(); this.ended = false; LS.set('ruhua.monet.fin', ''); this.finaleDue = 0;
+      this.closeAlbum(); this.ended = false; LS.set('ruhua.monet.fin', ''); LS.set('ruhua.monet.cheer', ''); this.finaleDue = 0;
       for (const id in g.caps) { PICS.del(id); delete g.big[id]; }
       g.caps = {}; g.unlocked = 0; g.found = {}; g.days = 0; g.met = {}; g.save(); this.count(); this.dialKey = ''; this.thumbKey = '';
       if (g.mode !== 'title') this.learnBegin(true);
@@ -1205,6 +1239,7 @@ const App = {
 
     window.addEventListener('keydown', (e) => {
       if (e.target && e.target.tagName === 'INPUT') return;
+      if (this.cheerOn) { if (e.code === 'Escape' || e.code === 'Enter') this.cheerEnd(); return; }
       if (this.finaleOn) { if (e.code === 'Escape') this.closeFinale(); return; }
       if (e.code === 'Escape') { if (this.helpOn) this.closeHelp(); else if (this.detail) this.closeDetail(); else if (this.panel) this.closeAlbum(); else if (g.free) this.toggleFree(); else if (g.spot >= 0) g.leaveSpot(); return; }
       if (this.detail) { if (e.code === 'ArrowLeft') this.stepDetail(-1); else if (e.code === 'ArrowRight') this.stepDetail(1); return; }

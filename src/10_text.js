@@ -27,6 +27,16 @@ const UI = {
   hintWater: { zh: '水面可以滑行。直接走上去就能滑过河，也可以飞过去。', en: 'The water carries you. Walk onto it and glide across, or fly over.' },
   // once a world's own paintings are caught its hidden one is no longer a secret: a line says so, the album says where to look,
   // a faint beam stands over it, and a line says when it is near
+  // the last of the hidden paintings, the last of the wonders, and all of it together
+  hidAll: { zh: '隐藏的画，你全都找到了。还有 # 处奇观，只在某个时刻、某个季节出现。画册的“遇见”里有线索，去遇见它们吧。', en: 'You have found every hidden painting. # wonders are still out there, each at its own hour and season. The album holds the clues under Met. Go and meet them.' },
+  hidAllOne: { zh: '隐藏的画，你全都找到了。还有 1 处奇观，只在某个时刻、某个季节出现。画册的“遇见”里有线索。', en: 'You have found every hidden painting. One wonder is still out there, at its own hour and season. The album holds the clue under Met.' },
+  sightAll: { zh: '所有的奇观，你都遇见了。还有 # 幅隐藏的画，画册里有线索。', en: 'You have met every wonder. # hidden paintings are still to be found. The album holds the clues.' },
+  sightAllOne: { zh: '所有的奇观，你都遇见了。还有 1 幅隐藏的画，画册里有线索。', en: 'You have met every wonder. One hidden painting is still to be found. The album holds the clue.' },
+  cheerT: { zh: '恭喜', en: 'Bravo' },
+  cheerA: { zh: '25 幅画，# 幅隐藏的画，% 处奇观。这里的一切，你一样都没有错过。', en: '25 paintings, # hidden ones, % wonders. You have missed nothing here.' },
+  cheerB: { zh: '谢谢你，陪莫奈把这些光一一等到。', en: 'Thank you for waiting for all this light with Monet.' },
+  fnD3: { zh: '隐藏的画，你也都找到了。还有 # 处奇观等你遇见，画册里有线索。', en: 'You have found the hidden paintings too. # wonders are still waiting to be met. The album holds the clues.' },
+  fnDall: { zh: '隐藏的画和所有的奇观，你一样都没有错过。谢谢你。', en: 'Not a hidden painting, not a wonder has escaped you. Thank you.' },
   hidOne: { zh: '这里还藏着一幅画，远处有一道很淡的光。画册里有线索。', en: 'One more painting is hidden here, under a faint beam far off. The album holds a clue.' },
   hidNear: { zh: '附近藏着一幅画。再走近些，它的画架就会亮起来。', en: 'A hidden painting is near. Come closer and its easel will light up.' },
   hidWhere: {

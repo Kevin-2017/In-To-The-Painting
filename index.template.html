@@ -275,6 +275,19 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 #finale { position: absolute; inset: 0; z-index: 6; overflow-y: auto; display: flex; padding: clamp(16px, 4vw, 44px); background: radial-gradient(ellipse at 50% 42%, rgba(31, 34, 56, 0.58), rgba(18, 20, 38, 0.86)); opacity: 0; visibility: hidden; transition: opacity 2.6s ease, visibility 0s linear 2.6s; touch-action: pan-y; }
 #finale.on { opacity: 1; visibility: visible; transition: opacity 2.6s ease, visibility 0s; }
 .fin { margin: auto; width: min(100%, 1060px); display: flex; flex-direction: column; align-items: center; gap: clamp(9px, 2vh, 20px); text-align: center; }
+/* everything found: congratulations and thanks, in the middle of the screen, over the world */
+#cheer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 6; background: radial-gradient(ellipse at center, rgba(20, 22, 40, 0.55), rgba(20, 22, 40, 0.15) 70%); pointer-events: none; }
+#cheer.on { pointer-events: auto; }
+#cheer .chbox { max-width: min(560px, 100%); padding: clamp(22px, 4vw, 38px) clamp(20px, 4vw, 44px); border: 1px solid var(--sun); border-radius: 16px; background: rgba(28, 30, 52, 0.82); backdrop-filter: blur(8px); box-shadow: 0 0 44px rgba(255, 198, 92, 0.32); text-align: center; }
+#cheer h3 { margin: 0 0 12px; font-size: clamp(30px, 5vw, 46px); font-weight: 900; letter-spacing: 0.16em; color: var(--sun); }
+.en #cheer h3 { font-family: var(--font-latin); font-style: italic; font-weight: 500; letter-spacing: 0.02em; }
+#cheer p { margin: 0 0 8px; font-family: var(--font-meta); font-size: clamp(14px, 1.6vw, 16.5px); line-height: 1.8; letter-spacing: 0.06em; text-wrap: balance; }
+#cheer p.thx { font-size: clamp(16px, 2vw, 20px); letter-spacing: 0.08em; margin-top: 12px; }
+.en #cheer p.thx { font-family: var(--font-latin); font-style: italic; letter-spacing: 0; font-size: clamp(18px, 2.3vw, 23px); }
+#cheer .acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 18px; }
+#cheer .acts .plaque { font-size: 15px; padding: 10px 22px 10px 24px; }
+#cheer .acts #chShow { border-color: var(--sun); color: var(--sun); }
+#cheer .acts #chShow:hover { background: var(--sun); color: var(--dusk); }
 .fin p, .fin .acts { margin: 0; opacity: 0; transform: translateY(8px); transition: opacity 1.8s ease, transform 2.4s ease; text-wrap: balance; }
 .fin p.on, .fin .acts.on { opacity: 1; transform: none; }
 .fin .fa { font-family: var(--font-meta); font-size: clamp(12.5px, 1.4vw, 15.5px); letter-spacing: 0.2em; line-height: 1.8; color: var(--mute); }
@@ -494,6 +507,7 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
     </div>
   </section>
 
+  <div id="cheer" class="fade" role="status" aria-live="polite"><div class="chbox shade"><h3 id="chT"></h3><p id="chA"></p><p class="thx" id="chB"></p><div class="acts"><button class="plaque" id="chShow" type="button"></button><button class="plaque quiet" id="chBack" type="button"></button></div></div></div>
   <section id="finale" aria-hidden="true">
     <div class="fin shade">
       <p class="fa" id="fnA"></p>
