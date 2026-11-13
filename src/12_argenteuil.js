@@ -495,6 +495,16 @@ const W_ARGENTEUIL = (() => {
         for (let r = 0; r < 2; r++) S.add(bx + sx, yTop + 0.45 + r * 0.5, z - 1.15, 0, 0, 1, sx > 0 ? 1 : -1, 0, 0, 2.6, 0.1, iron(rnd), 0, CELL.LONG_B, 0, 0);
       }
       W.caster({ k: 'box', pts: [[bx - hw, z0], [bx + hw, z0], [bx + hw, z1], [bx - hw, z1]], h: 8.6, v: 0.7 });
+      // The roadway. (The deck was a box of four walls open to the sky: seen from the air one looked down into the arches.) It lies level
+      // with the tops of the two embankments, which it covers as well, and it holds her when she comes down on it (W.roof)
+      {
+        const gravel = pal(['#d6cdb8', '#cbc2ae', '#dfd7c4', '#bfb8a8', '#c9bda6'], 0.03), yR = yDeck + 0.42;
+        const lay = (x0, x1, za, zb, y) => { const a = [x0, y, za], b = [x1, y, za], c = [x1, y, zb], d = [x0, y, zb];
+          W.quad(a, b, c, d, hex('#cdc5b2')); W.quad(d, c, b, a, hex('#cdc5b2')); paintQuad(W, a, b, c, d, { step: 0.85, len: 1.5, wid: 0.55, along: 'v', col: gravel, jit: 0.9 }); };
+        lay(bx - hw, bx + hw, -40, -146, yR);
+        lay(bx - 4.6, bx + 4.6, -40, -49, yR - 0.01); lay(bx - 4.6, bx + 4.6, -139, -146, yR - 0.01);
+        W.roof = (x, z) => (Math.abs(x - bx) < hw - 0.25 && z < -40.3 && z > -145.7 ? yR + 0.04 : null);
+      }
       // embankments under the two ends of the deck
       box(W, { x: bx, z: -44.5, w: 9, d: 9, y0: W.h(bx, -44) - 0.4, h: yDeck + 0.4 - W.h(bx, -44), wall: stone, base: hex('#d8d0c0'), step: 0.7, len: 1.4, wid: 0.46 });
       box(W, { x: bx, z: -142.5, w: 9, d: 7, y0: W.h(bx, -142) - 0.4, h: yDeck + 0.4 - W.h(bx, -142), wall: stone, base: hex('#d8d0c0'), step: 0.7, len: 1.4, wid: 0.46 });

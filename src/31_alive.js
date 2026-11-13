@@ -541,7 +541,7 @@ const ALIVE = (() => {
     stepFlocks(g, dt);
 
     // water: a ring left behind her every half second of a slide
-    const onWater = W.waterY !== null && p.alt <= 0.06 && g.groundAt(W, p.x, p.z) <= W.waterY + 0.001;
+    const onWater = W.waterY !== null && p.alt <= 0.06 && g.floorAt(W, p) <= W.waterY + 0.001;
     if (g.sliding && onWater) {
       st.ringT -= dt;
       if (st.ringT <= 0) {

@@ -223,7 +223,7 @@ class Music {
     const N = { Ds1: 27, Fs1: 30, A1: 33, C2: 36, Ds2: 39, Fs2: 42, A2: 45, C3: 48, Ds3: 51, Fs3: 54, A3: 57, C4: 60, Ds4: 63, Fs4: 66, A4: 69, C5: 72, Ds5: 75, Fs5: 78, A5: 81, C6: 84, Ds6: 87, Fs6: 90, A6: 93, C7: 96 };
     const ctx = this.ctx, got = [], keys = Object.keys(N); let left = keys.length;
     this.pnoWait = true; setTimeout(() => { this.pnoWait = false; }, 8000);
-    const done = () => { if (got.length >= 12) this.setPiano(got.slice()); if (--left <= 0) this.pnoWait = false; else if (this.pno && this.pno.length >= 16) this.pnoWait = false; };
+    const done = () => { if (got.length >= 12) this.setPiano(got.slice()); if (--left <= 0) { this.pnoWait = false; this.loadBand(base); } else if (this.pno && this.pno.length >= 16) this.pnoWait = false; };
     // the middle of the keyboard first: it is what every piece begins with
     keys.sort((a, b) => Math.abs(N[a] - 60) - Math.abs(N[b] - 60));
     for (const k of keys) fetch((base || 'snd/') + 'piano-' + k + '.mp3').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('no file'))))
@@ -232,6 +232,34 @@ class Music {
   setPiano(list) { // each note at the same peak, so that none stands out
     for (const x of list) if (!x.k) { const d = x.buf.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 3) { const v = Math.abs(d[i]); if (v > pk) pk = v; } x.k = 0.5 / Math.max(0.05, pk); }
     this.pno = list.sort((a, b) => a.midi - b.midi);
+  }
+  // the other players are fetched once the piano is there, one instrument after another in the order the music calls them in
+  loadBand(base) {
+    if (this.bandAsked || !this.ctx || typeof fetch !== 'function' || location.protocol === 'file:') return; this.bandAsked = true;
+    const ctx = this.ctx, names = ['cello', 'flute', 'harp', 'violins'];
+    const next = (i) => { if (i >= names.length) return; const B = Music.BAND[names[i]];
+      Promise.all(Object.keys(B.notes).map((k) => fetch((base || 'snd/') + names[i] + '-' + k + '.mp3').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('no file'))))
+        .then((ab) => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej))).then((buf) => ({ midi: B.notes[k], buf }))))
+        .then((list) => this.setBand(names[i], list), () => { /* that player stays away */ }).then(() => next(i + 1)); };
+    next(0);
+  }
+  setBand(name, list) {
+    for (const x of list) { const d = x.buf.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 3) { const v = Math.abs(d[i]); if (v > pk) pk = v; } x.k = 0.5 / Math.max(0.05, pk); }
+    (this.players || (this.players = {}))[name] = list.sort((a, b) => a.midi - b.midi);
+  }
+  // one note of a recorded player (nothing, if that player has not come yet): moved by octaves into its range, begun and let go as it does
+  band(name, t, midi, vel, len) {
+    const L = this.players && this.players[name]; if (!L || !L.length) return false;
+    const B = Music.BAND[name], ctx = this.ctx;
+    while (midi < B.lo) midi += 12; while (midi > B.hi) midi -= 12;
+    let S = L[0]; for (const x of L) if (Math.abs(x.midi - midi) < Math.abs(S.midi - midi)) S = x;
+    const rate = Math.pow(2, (midi - S.midi) / 12), nat = S.buf.duration / rate, hold = Math.max(B.att + 0.06, Math.min(len, nat - 0.3)), end = Math.min(t + hold + 4 * B.rel, t + nat);
+    if (!this.claim(t, Math.min(end, t + 2.5), 0)) return false; // (the piano comes first where voices run short)
+    const src = ctx.createBufferSource(); src.buffer = S.buf; src.playbackRate.value = rate;
+    const e = ctx.createGain(), pk = vel * B.gain * S.k;
+    e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(pk, t + B.att); e.gain.setTargetAtTime(0, t + hold, B.rel);
+    src.connect(e); e.connect(this.vout('r' + name, midi)); src.start(t); src.stop(end + 0.05);
+    return true;
   }
   // ----- keeping the sound alive on phones -----
   // A phone that locks its screen, takes a call or goes to another app cuts the sound off, and does not always give it back. The context may
@@ -855,18 +883,22 @@ class Music {
   // A piece is played a quarter note at a time, and as a pianist would rather than as written: each phrase moves on a little and holds back
   // at its end, swells and falls, the tune sings over the rest, what is struck together is spread by a hair from the bottom up.
   // And it grows with her paintings in this world (the step of intensity, 0 to 5):
-  //   0  a sketch in two voices: the tune and the bass
+  //   0  a sketch in two voices on the piano: the tune and the bass
   //   1  the harmony between them comes in: the piece as it was written, softly
-  //   2  at its full weight
-  //   3  the bass an octave deeper under itself
-  //   4  the tune an octave higher over itself, very softly, where it holds
-  //   5  both a little stronger, in a wider room
+  //   2  at its full weight, and the cellos take up the bass under the piano
+  //   3  a flute sings the tune with the piano where it holds a note
+  //   4  a harp plucks the harmony on the beats
+  //   5  the violins join the tune on its long notes
+  // The other players only ever double what the piano plays (the same notes, never a line of their own), so the piece stays one piece.
   pieceOf(name) {
     const C = this.pieces || (this.pieces = {}); if (C[name]) return C[name];
     const P = PIECES[name] || (typeof PIECE_NOTES !== 'undefined' && PIECE_NOTES[name]); if (!P) return null;
     const steps = Math.ceil(P.len / 24), by = []; for (let k = 0; k < steps; k++) by.push([]);
     for (const n of P.notes) by[Math.min(steps - 1, Math.floor(n[0] / 24))].push(n);
     for (const b of by) b.sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+    // how long the tune stays on each of its notes, and the bass on each of its own (index 5): the other players join only where it holds
+    for (const part of [0, 1]) { const L = P.notes.filter((n) => n[4] === part).sort((x, y) => x[0] - y[0] || y[1] - x[1]);
+      for (let i = 0; i < L.length; i++) { let j = i + 1; while (j < L.length && L[j][0] === L[i][0]) j++; L[i][5] = j < L.length ? L[j][0] - L[i][0] : 96; } }
     // the breath of each phrase: how long every quarter lasts (1 is the plain tempo) and how strongly it is played
     const L = Math.max(2, Math.round(P.bar * P.phrase)), pace = [], swell = [];
     for (let k = 0; k < steps; k++) { const pos = (k % L) / L, end = Math.max(0, (k - (steps - 2 * P.bar)) / (2 * P.bar));
@@ -878,10 +910,11 @@ class Music {
     const P = this.pieceOf(s.piece); if (!P) return;
     const k = step % (P.steps + P.rest), r = this.rnd, I = this.useInten ? g.I : 2;
     const d = g.stepDur * (k < P.steps ? P.pace[k] : 1), soft = (night ? 0.8 : 1) * (0.9 + 0.035 * I);
-    if (k < P.steps) { let last = -1, n = 0; const sw = P.swell[k];
+    if (k < P.steps) { let last = -1, n = 0, plucked = 0; const sw = P.swell[k];
       for (const e of P.by[k]) {
         const part = e[4];
         if (part === 2 && I < 1) continue; // (the sketch has no inner voices)
+        if (e[0] !== last) plucked = 0;
         n = e[0] === last ? n + 1 : 0; last = e[0];
         const at = t + (e[0] - k * 24) / 24 * d + Math.min(0.045, n * 0.012) + (r() - 0.5) * 0.012, len = e[2] / 24 * d + 0.12;
         // the tune swells with its phrase and sings out the more the higher it climbs; the rest breathes with it, less
@@ -889,8 +922,11 @@ class Music {
         v *= part === 0 ? sw * (1 + clamp((e[1] - 72) * 0.008, -0.1, 0.14)) : 0.5 + 0.5 * sw;
         if (part === 2 && I === 1) v *= 0.72;
         this.note('piano', at, e[1], v, len, 1);
-        if (part === 1 && I >= 3 && e[1] - 12 >= 24) this.note('piano', at - 0.004, e[1] - 12, v * (I >= 5 ? 0.7 : 0.55), len, 1);
-        if (part === 0 && I >= 4 && e[2] >= 20 && e[1] + 12 <= 98) this.note('piano', at + 0.01, e[1] + 12, v * (I >= 5 ? 0.42 : 0.32), len, 1);
+        const stay = (e[5] || 48) / 24 * d; // (how long the tune or the bass stays on this note)
+        if (part === 1 && I >= 2) this.band('cello', at, e[1], v * (I >= 5 ? 1.15 : 1), clamp(stay * 0.98, 1.2, 4.4));
+        if (part === 0 && I >= 3 && e[5] >= 22 && e[1] >= 58) this.band('flute', at + 0.015, e[1], v, clamp(stay * 0.96, 0.5, 3.4));
+        if (part === 2 && I >= 4 && e[0] % 24 === 0 && plucked < 2 && this.band('harp', at + 0.006, e[1], v, 2.4)) plucked++; // (two strings at a time at most)
+        if (part === 0 && I >= 5 && e[5] >= 34 && e[1] >= 55) this.band('violins', at, e[1], v, clamp(stay, 1.2, 4.4));
       } }
     // the world around it, as under the other scores
     if (night) { if (r() < 0.3) this.cricket(t + r() * d); if (s.frogs && r() < 0.05) this.frog(t + r() * d); }
@@ -1026,7 +1062,18 @@ Music.WAVES = (() => {
   };
 })();
 // where each voice sits and the body that colours it
+// The other players, recorded note by note: the cellos, a flute, a harp and the violins of the Versilian Studios Chamber Orchestra 2
+// (Community Edition, given to the public domain). For each: its notes (file name to midi), the range it plays in, how it begins and ends
+// a note, and how loud it stands beside the piano
+Music.BAND = {
+  cello: { notes: { C1: 36, E1: 40, G1: 43, B1: 47, D2: 50, F2: 53 }, lo: 36, hi: 55, att: 0.1, rel: 0.4, gain: 1.05 },
+  flute: { notes: { C3: 60, E3: 64, A3: 69, C4: 72, E4: 76, A4: 81, C5: 84, E5: 88, A5: 93, C6: 96 }, lo: 60, hi: 98, att: 0.05, rel: 0.22, gain: 0.85 },
+  harp: { notes: { D2: 38, F2: 41, A2: 45, C3: 48, E3: 52, G3: 55, B3: 59, D4: 62, F4: 65, A4: 69, C5: 72, E5: 76, G5: 79, B5: 83, D6: 86, F6: 89 }, lo: 36, hi: 92, att: 0.004, rel: 0.5, gain: 1.5 },
+  violins: { notes: { G2: 55, B2: 59, D3: 62, Fs3: 66, A3: 69, C4: 72, E4: 76, G4: 79, B4: 83, D5: 86 }, lo: 55, hi: 89, att: 0.22, rel: 0.55, gain: 0.6 },
+};
 Music.BUS = {
+  // (the recorded players sit as an orchestra does: violins and harp to the left, the flute in the middle, the cellos to the right)
+  rcello: { pan: 0.3 }, rflute: { pan: 0.04 }, rharp: { pan: -0.34 }, rviolins: { pan: -0.26 },
   pianoL: { pan: -0.14 }, pianoH: { pan: 0.14 },
   harp: { pan: -0.28 }, pluck: { pan: -0.06 },
   accordion: { pan: 0.2, swell: [0.09, 0.1] },

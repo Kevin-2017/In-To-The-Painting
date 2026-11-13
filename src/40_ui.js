@@ -285,6 +285,8 @@ const App = {
     const w = WORKS[e.id], g = this.game;
     track('catch', { id: e.id, n: Object.keys(g.caps).length, world: ch.id, s: Math.round(this.playT || 0) }); // (s: seconds played in this visit)
     this.caughtHere = true;
+    // the last of this world's own paintings: a while later a line says that one more is hidden here (if it is, and still unfound)
+    if (!e.hidden && g.capCount(ch) >= ch.need && ch.effects.some((x) => x.hidden && !g.caps[x.id])) this.later('hidTell', 26000, () => { if (g.ch === ch && g.mode === 'play' && ch.effects.some((x) => x.hidden && !g.caps[x.id] && !g.spotFound(x.spot, ch))) this.hint('hidOne', 10); });
     clearTimeout(this.timers.hint0);
     this.hide('hint');
     // what she has just caught: its name stands on the picture for a few seconds, its moment under it
@@ -671,12 +673,14 @@ const App = {
       for (const e of ch.effects) {
         const got = g.caps[e.id], fig = document.createElement('figure'), im = document.createElement('div'), cap = document.createElement('figcaption');
         const known = !e.hidden || g.spotFound(e.spot, ch), tag = () => { const b2 = document.createElement('b'); b2.textContent = this.t(UI.hidTag); return b2; };
-        if (e.hidden && !got && !known && !this.ended) continue; // nothing is said of a hidden painting before the ending, unless she has come upon it
+        if (e.hidden && !got && !known && !this.ended && g.capCount(ch) < ch.need) continue; // nothing is said of a hidden painting until the others of its world are caught (or the ending seen), unless she has come upon it
         fig.className = 'pic' + (got ? ' got' : ' none') + (e.hidden ? ' hid' : ''); im.className = 'im';
         if (got) { fig.tabIndex = 0; fig.setAttribute('role', 'button'); fig.addEventListener('click', () => this.openDetail(e.id)); fig.addEventListener('keydown', (ev) => { if (ev.code === 'Enter' || ev.code === 'Space') { ev.preventDefault(); this.openDetail(e.id); } }); }
         if (got && got.length > 8) im.style.backgroundImage = 'url(' + got + ')';
         if (got) { const wk = WORKS[e.id], sm = document.createElement('small'); cap.textContent = this.t(wk); if (e.hidden) sm.appendChild(tag()); sm.appendChild(document.createTextNode(wk.y + '　' + this.t(wk.at))); cap.appendChild(sm); }
-        else if (e.hidden) { const sm = document.createElement('small'); if (!known) im.textContent = '?'; sm.appendChild(tag()); sm.appendChild(document.createTextNode(this.t(known ? UI.hidFound : UI.hidSlot))); cap.appendChild(sm); }
+        else if (e.hidden) { const sm = document.createElement('small'); if (!known) im.textContent = '?'; sm.appendChild(tag()); sm.appendChild(document.createTextNode(this.t(known ? UI.hidFound : UI.hidSlot))); cap.appendChild(sm);
+          // (shown once the other paintings of its world are caught, see above) where to look for it
+          if (!known && UI.hidWhere[ch.id]) { const cl = document.createElement('small'); cl.className = 'clue'; cl.textContent = this.t(UI.hidWhere[ch.id]); cap.appendChild(cl); } }
         else { const sm = document.createElement('small'); sm.textContent = e.phase < 0 ? '' : this.t(w.phases[e.phase]); cap.appendChild(sm); }
         fig.append(im, cap); grid.appendChild(fig);
       }

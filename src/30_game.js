@@ -190,6 +190,8 @@ class Game {
   capCount(ch) { let n = 0; for (const e of ch.effects) if (!e.hidden && this.caps[e.id]) n++; return n; }
   hidCount(ch) { let n = 0; for (const e of ch.effects) if (e.hidden && this.caps[e.id]) n++; return n; }
   mainLeft() { for (const ch of WORLDS) for (const e of ch.effects) if (!e.hidden && !this.caps[e.id]) return true; return false; }
+  // the hidden painting of a world is no secret any more once its other paintings are all caught, or once the ending has been seen
+  hidOpen(ch) { ch = ch || this.ch; return !!ch && (this.capCount(ch) >= ch.need || !!(this.ui && this.ui.ended)); }
   spotFound(i, ch) { ch = ch || this.ch; const s = ch.spots[i]; return !!s && (!s.hidden || !!this.found[ch.id + i]); }
   showWorld(idx) {
     const W = this.ensure(idx), ch = WORLDS[idx];
@@ -208,6 +210,9 @@ class Game {
     p.y = p.yAbs = this.groundAt(this.cur, p.x, p.z); this.trail.length = 0;
     this.camYaw = s.yaw || 0; this.camPitch = -0.05;
   }
+  // The ground under her own feet: the land, the water, a low deck, or the top of something tall that she has come down on (W.roof: the
+  // road bridge at Argenteuil). A roof holds her only from above, so that she still walks under it
+  floorAt(W, p) { let h = this.groundAt(W, p.x, p.z); if (W.roof && p.yAbs !== undefined) { const r = W.roof(p.x, p.z); if (r !== null && r > h && p.yAbs >= r - 0.9) h = r; } return h; }
   groundAt(W, x, z) {
     let h = W.h(clamp(x, -790, 790), clamp(z, -790, 790));
     if (W.waterY !== null && h < W.waterY) h = W.waterY;
@@ -527,7 +532,7 @@ class Game {
     this.pushing = l > 0.05 || wantUp; // she is being moved: by the keys, the stick, or the light she is seeking
     if (l > 1) { mx /= l; mz /= l; }
     const shift = !!(K.ShiftLeft || K.ShiftRight), maxAlt = this.ch.maxAlt || 42;
-    const gy0 = this.groundAt(W, p.x, p.z);
+    const gy0 = this.floorAt(W, p);
     if (p.yAbs === undefined) p.yAbs = gy0 + p.alt;
     let inAir = p.alt > 0.06;
     // seeking the light and held up by a wall or a tree: she lets the parasol lift her over it
@@ -628,7 +633,7 @@ class Game {
     if (d > R) { const k = Math.min(1, (d - R) * 0.12); p.x -= (dx / d) * (d - R) * k; p.z -= (dz / d) * (d - R) * k; }
     this.realSp = Math.hypot(p.x - px0, p.z - pz0) / dt;
     // height: her own in the air, the ground's on the ground, and a cliff edge is a place to take off from
-    const gy = this.groundAt(W, p.x, p.z);
+    const gy = this.floorAt(W, p);
     if (inAir) {
       p.yAbs += p.valt * dt;
       if (p.yAbs > gy + maxAlt) { p.yAbs = gy + maxAlt; if (p.valt > 0) p.valt = 0; }
@@ -668,7 +673,12 @@ class Game {
     const p = this.pl, sp = Math.hypot(p.vx, p.vz);
     // an easel nobody pointed to: coming near is finding it, and from then on it has its light like the others
     this.ch.spots.forEach((s, i) => {
-      if (!s.hidden || this.found[this.ch.id + i] || Math.hypot(s.x - p.x, s.z - p.z) > 13 || p.alt > 16) return;
+      if (!s.hidden || this.found[this.ch.id + i] || p.alt > 16) return;
+      // (once every painting of this world is caught, or after the ending, its hidden one is meant to be found: a faint beam stands
+      // over it, a line says when it is near, and it is found from farther off. See hidOpen)
+      const d = Math.hypot(s.x - p.x, s.z - p.z), late = this.hidOpen(), key = this.ch.id + i;
+      if (late && d < 70 && d > 30 && !(this.nearTold || (this.nearTold = {}))[key]) { this.nearTold[key] = 1; this.ui.hint('hidNear', 8); }
+      if (d > (late ? 30 : 13)) return;
       this.found[this.ch.id + i] = 1; this.foundT[this.ch.id + i] = this.time;
       if (this.audio) this.audio.door();
       this.ui.onFound(i); this.save();
@@ -1025,6 +1035,8 @@ class Game {
       if (!this.spotFound(i)) { // not yet found: no beam, only a glint on the easel when she is not far off
         const g = sstep(48, 15, Math.hypot(s.x - this.pl.x, s.z - this.pl.z)) * vis * (0.55 + 0.45 * Math.sin(t * 3.3 + i));
         if (g > 0.01) { const ex = s.easel ? s.easel[0] : s.x + 1.2, ez = s.easel ? s.easel[1] : s.z + 0.6; R.glow(ex, this.groundAt(this.cur, ex, ez) + 1.5, ez, 0, 0.62 * g, 0.54 * g, 0.3 * g, 1.3, 1.3); }
+        // a hidden one that may now be found: a faint, slow beam, paler and thinner than the others, to be seen from far off
+        if (s.hidden && this.hidOpen()) { const kf = vis * (0.3 + 0.1 * Math.sin(t * 1.3 + i)); if (kf > 0.01) R.glow(s.x, y, s.z, 1, 0.24 * kf, 0.3 * kf, 0.36 * kf, 1.1, 52); }
         return;
       }
       const grow = s.hidden ? ease(sstep(0, 2.6, t - (this.foundT[this.ch.id + i] === undefined ? -99 : this.foundT[this.ch.id + i]))) : 1; // its light goes up as she finds it

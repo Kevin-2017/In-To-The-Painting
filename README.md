@@ -29,8 +29,9 @@ Node 18 or newer. There is nothing to install.
 ## Credits
 
 Each world plays a piano piece from the painter's own years, arranged for the game: it begins as a sketch of tune and bass,
-fills in to the piece as written with the first painting caught there, and broadens with the rest. It is phrased as a pianist
-would play it rather than in strict time.
+fills in to the piece as written with the first painting caught there, and then other players join the piano one by one
+(cellos, a flute, a harp, violins), each doubling what the piano plays. It is phrased as a pianist would play it rather
+than in strict time.
 
 | World | Piece |
 |---|---|
@@ -45,6 +46,9 @@ Keith OHara (Debussy). `tools/pieces.mjs` turns their MIDI output into `src/21_p
 The piano is the Salamander Grand Piano V3 by Alexander Holm (a Yamaha C5), used under the Creative Commons Attribution 3.0
 license (https://creativecommons.org/licenses/by/3.0/). The notes in `snd/` were taken from the copies in the Tone.js audio
 repository (twenty four notes a minor third apart), cut to between four and eight seconds and converted to mono.
+
+The cellos, the flute, the harp and the violins are from the Versilian Studios Chamber Orchestra 2, Community Edition
+(github.com/sgossner/VSCO-2-CE), which its makers gave to the public domain (CC0 1.0). The notes used were cut and converted to mono.
 
 ## 中文
 

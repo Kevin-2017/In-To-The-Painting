@@ -25,6 +25,16 @@ const UI = {
   hintSlide: { zh: '水面、雪地和下坡都能滑行　朝哪边推就往哪边拐', en: 'Water, snow and downhill slopes carry you. Lean the way you want to turn' },
   // said once for a place she is not getting nearer to, when that place lies across water or stands high above her
   hintWater: { zh: '水面可以滑行。直接走上去就能滑过河，也可以飞过去。', en: 'The water carries you. Walk onto it and glide across, or fly over.' },
+  // once a world's own paintings are caught its hidden one is no longer a secret: a line says so, the album says where to look,
+  // a faint beam stands over it, and a line says when it is near
+  hidOne: { zh: '这里还藏着一幅画，远处有一道很淡的光。画册里有线索。', en: 'One more painting is hidden here, under a faint beam far off. The album holds a clue.' },
+  hidNear: { zh: '附近藏着一幅画。再走近些，它的画架就会亮起来。', en: 'A hidden painting is near. Come closer and its easel will light up.' },
+  hidWhere: {
+    coast: { zh: '埃特勒塔海湾西边的崖顶上，悬崖边有一间小屋的地方。', en: 'On the cliff top west of the cove at Étretat, where a little house stands on the brink.' },
+    argenteuil: { zh: '过了公路桥往上游走，在河岸的水边。', en: 'Past the road bridge, upstream, down by the water.' },
+    fields: { zh: '东边的草地里，一道不靠任何小路的草坡上。', en: 'On a grassy bank in the east meadow, off every path.' },
+    pond: { zh: '池塘尽头再往东的草地上，一棵垂柳下面。', en: 'Under the weeping willow in the east meadow, beyond the end of the pond.' },
+  },
   hintUp: { zh: '这幅画在高处。按住空格，阳伞会带你飞上去。', en: 'This one is up high. Hold Space and the parasol lifts you there.' },
   hintUpTouch: { zh: '这幅画在高处。按住右下方的「飞」，阳伞会带你飞上去。', en: 'This one is up high. Hold Fly at the lower right and the parasol lifts you there.' },
   metres: { zh: ' 米', en: ' m' },
@@ -47,8 +57,8 @@ const UI = {
   fnDays: { zh: '你在画里，走过了 # 个晨昏。', en: 'You walked through # dawns and dusks inside the paintings.' },
   // (a | marks where the Chinese line may be broken: after its first sentence always, after the comma only where the screen is narrow)
   fnC: { zh: '光从不为谁停留。|而此刻落在你窗前的那束光，|是独属于你的瞬间。', en: 'Light waits for no one. The light falling at your window now will come only this once.' },
-  fnD2: { zh: '还有 # 幅隐藏的画，等待你的发现。', en: '# hidden paintings are still waiting for you to find them.' },
-  fnD2one: { zh: '还有 # 幅隐藏的画，等待你的发现。', en: 'One hidden painting is still waiting for you to find it.' },
+  fnD2: { zh: '还有 # 幅隐藏的画，等待你的发现。画册里有它们的线索。', en: '# hidden paintings are still waiting for you to find them. The album holds a clue to each.' },
+  fnD2one: { zh: '还有 # 幅隐藏的画，等待你的发现。画册里有它的线索。', en: 'One hidden painting is still waiting for you to find it. The album holds a clue.' },
   fnD2all: { zh: '隐藏的画，你也都找到了。', en: 'You have found all the hidden paintings too.' },
   fnShare: { zh: '分享我的画展', en: 'Share my exhibition' }, fnBack: { zh: '回到画里', en: 'Back into the painting' }, myShow: { zh: '我的画展', en: 'My exhibition' },
   poster1: { zh: '我在莫奈的光里', en: 'In Monet’s light I waited for' }, poster2: { zh: '等到了二十五个瞬间', en: 'twenty five moments' },
