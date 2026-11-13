@@ -1,6 +1,6 @@
 // ---------- generative music ----------
 // One score per world, each with its own lead instrument that nobody else leads with.
-// The coast is a felt piano, Argenteuil a harp and a French accordion, the fields a solo cello over held strings, the pond a celesta and a far flute.
+// The coast is a felt piano, Argenteuil a harp and a French accordion, the fields a felt piano in three over a rocking harp, the pond a celesta and a far flute.
 // Each world has a written theme of eight bars (tune) that comes back again and again. Between its returns the generator varies it
 // (same rhythm with other notes, the same notes ornamented, the answer alone). Layers come in as paintings are gathered, at night the music thins to its ground.
 // grow holds the step of intensity (0 to 5) at which each layer enters. A line is a slow held counter melody, per gives its notes per bar at each step,
@@ -49,11 +49,13 @@ const SCORES = [
     grow: { spark: 2, chord4: 2, bassAt: 3, bassHalf: 3, roll: 5, top: 5, cut: 0.08, quick: 0.05,
       line: { voice: 'strings', c: 4, per: [0, 0, 0, 0, 1, 2], vel: 0.016 } },
   },
-  { // the fields, A major in three, a solo cello sings over a chorale of held strings, an oboe answers it at the top. It grows by warmth.
-    bpm: 66, beats: 3, sub: 2, root: 57, scale: SCALES.major, prog: [0, 5, 3, 4, 5, 3, 4, 0], barsPer: 1, wet: 0.42, jit: 0.01,
-    pad: { cut: 1400, gain: 0.011, vib: true, att: 0.7, rel: 1.2, v: [[0, -1], [4, -1], [2, 1], [4, 1]], v4: [6, 1], vTop: [0, 2] }, bass: 'pluck', bassVel: 0.045,
-    arp: null,
-    mel: { voice: 'cello', oct: 0, dens: 0.55, vel: 0.085 },
+  { // the fields, A major in three, all struck and plucked: a felt piano sings with the pedal down, a harp rocks under it and answers at the top,
+    // a plucked bass, and only a low breath of strings far behind. (It was a cello, an oboe and held strings: bowed and blown voices made here
+    // sound made, not played.) It grows by warmth.
+    bpm: 66, beats: 3, sub: 2, root: 57, scale: SCALES.major, prog: [0, 5, 3, 4, 5, 3, 4, 0], barsPer: 1, wet: 0.46, jit: 0.012, pedal: true,
+    pad: { cut: 760, gain: 0.006, att: 1.6, rel: 1.6, v: [[0, -1], [4, -1], [2, 0]], v4: [6, 0], vTop: [4, 0] }, bass: 'pluck', bassVel: 0.045,
+    arp: { voice: 'harp', oct: -1, vel: 0.044, pat: [[0, [0]], [1, [2]], [2, [3]], [3, [4]], [4, [3]], [5, [2]]], at0: [0, 2, 4] },
+    mel: { voice: 'piano', oct: 0, dens: 0.55, vel: 0.125 },
     tune: { bars: [
       [[0, 4, 4, 0.9], [4, 2, 2, 0.8]],
       [[0, 5, 3, 0.95], [3, 4, 1, 0.75], [4, 2, 2, 0.8]],
@@ -63,12 +65,12 @@ const SCORES = [
       [[0, 7, 4, 1], [4, 5, 2, 0.85]],
       [[0, 4, 2, 0.9], [2, 3, 2, 0.8], [4, 1, 2, 0.8]],
       [[0, 0, 6, 0.85]]] },
-    answer: { at: 4, voice: 'oboe', oct: 1, vel: 1.05 },
-    layers: [{ at: 4, voice: 'strings', oct: 1, vel: 0.5, bars: [4, 8] }, { at: 5, voice: 'strings', oct: 1, vel: 0.5, bars: [0, 4] }],
-    spark: null, chime: 'bell', wind: 0.03, birds: true,
+    answer: { at: 4, voice: 'harp', oct: 1, vel: 1.0 },
+    layers: [{ at: 4, voice: 'piano', iv: 'ct', minLen: 2, vel: 0.5 }, { at: 5, voice: 'piano', oct: -1, vel: 0.6 }],
+    spark: null, chime: 'harp', wind: 0.03, birds: true,
     rhythms: [[0, 2, 4], [0, 3], [0, 4], [0], [2, 4], [0, 2, 3, 4]],
     grow: { chord4: 2, bassAt: 2, bassHalf: 3, pulse: 5, top: 4, deep: 4, cut: 0.05, swell: 0.02, quick: 0.03,
-      line: { voice: 'strings', c: -4, per: [0, 0, 0, 1, 1, 1], vel: 0.017 } },
+      line: { voice: 'harp', c: -4, per: [0, 0, 0, 1, 1, 1], vel: 0.032 } },
   },
   { // the pond, E dorian that never quite settles, the celesta rings like rings on water, a flute a long way off, a low string drone. It grows by shimmer and depth.
     bpm: 50, beats: 4, sub: 3, root: 52, scale: SCALES.dorian, prog: [0, 3, 0, 6, 2, 3, 6, 0], barsPer: 1, wet: 0.7, jit: 0.02,
@@ -115,13 +117,13 @@ const THEMES = {
   a5: { bpm: 50, scale: SCALES.mixo, penta: false, prog: [0, 6, 3, 0, 4, 6, 3, 0], pad: { cut: 1000, gain: 0.011, lfo: true }, arp: { voice: 'harp', oct: -1, vel: 0.044, pat: RUN6 }, mel: { dens: 0.45 }, spark: { voice: 'harp', p: 0.06, vel: 0.024, oct: 2 } },
   // the fields
   f1: {},
-  f2: { bpm: 56, root: 54, scale: SCALES.minor, penta: false, prog: [0, 5, 3, 4, 0, 5, 2, 4], pad: { cut: 1000, gain: 0.012 }, mel: { dens: 0.5, fall: true }, birds: false },
-  f3: { bpm: 60, scale: SCALES.lydian, penta: false, prog: [0, 1, 0, 4, 2, 1, 0, 4], pad: { cut: 1500, gain: 0.009 }, arp: { voice: 'pluck', oct: 0, vel: 0.032, pat: [[0, [0]], [2, [2]], [4, [3]]] }, mel: { dens: 0.45 }, spark: { voice: 'bell', p: 0.1, vel: 0.022, oct: 3 }, birds: false, wind: 0.05 },
-  f4: { bpm: 56, pad: { cut: 1250, gain: 0.012, lfo: true }, birds: false },
-  f5: { bpm: 48, scale: SCALES.dorian, penta: false, prog: [0, 3, 0, 6, 0, 3, 2, 6], pad: { cut: 800, gain: 0.013, lfo: true }, mel: { dens: 0.4 }, spark: null, birds: false, wind: 0.06 },
-  f6: { bpm: 76, beats: 4, sub: 2, root: 50, prog: [0, 3, 0, 4, 5, 3, 1, 4], pad: { cut: 1300 }, arp: { voice: 'pluck', oct: 0, vel: 0.034, pat: RUN8 }, mel: { dens: 0.6 }, wind: 0.05, rhythms: R8 },
-  f7: { bpm: 60, root: 59, scale: SCALES.dorian, penta: false, prog: [0, 3, 0, 6, 2, 6, 3, 0], pad: { cut: 900 }, arp: { voice: 'pluck', oct: 0, vel: 0.032, pat: [[0, [0]], [2, [1]], [4, [2]]] }, mel: { dens: 0.5, fall: true }, spark: null, birds: false, wind: 0.05 },
-  f8: { bpm: 52, root: 50, scale: SCALES.lydian, penta: false, prog: [0, 1, 0, 4, 2, 1, 0, 4], pad: { cut: 1100, gain: 0.012, lfo: true }, mel: { dens: 0.4 }, birds: false },
+  f2: { bpm: 56, root: 54, scale: SCALES.minor, penta: false, prog: [0, 5, 3, 4, 0, 5, 2, 4], pad: { cut: 800, gain: 0.007 }, mel: { dens: 0.5, fall: true }, birds: false },
+  f3: { bpm: 60, scale: SCALES.lydian, penta: false, prog: [0, 1, 0, 4, 2, 1, 0, 4], pad: { cut: 900, gain: 0.006 }, arp: { voice: 'pluck', oct: 0, vel: 0.032, pat: [[0, [0]], [2, [2]], [4, [3]]] }, mel: { dens: 0.45 }, spark: { voice: 'harp', p: 0.1, vel: 0.024, oct: 2 }, birds: false, wind: 0.05 },
+  f4: { bpm: 56, pad: { cut: 820, gain: 0.007 }, birds: false },
+  f5: { bpm: 48, scale: SCALES.dorian, penta: false, prog: [0, 3, 0, 6, 0, 3, 2, 6], pad: { cut: 720, gain: 0.008 }, mel: { dens: 0.4 }, spark: null, birds: false, wind: 0.06 },
+  f6: { bpm: 76, beats: 4, sub: 2, root: 50, prog: [0, 3, 0, 4, 5, 3, 1, 4], pad: { cut: 860 }, arp: { voice: 'pluck', oct: 0, vel: 0.034, pat: RUN8 }, mel: { dens: 0.6 }, wind: 0.05, rhythms: R8 },
+  f7: { bpm: 60, root: 59, scale: SCALES.dorian, penta: false, prog: [0, 3, 0, 6, 2, 6, 3, 0], pad: { cut: 780 }, arp: { voice: 'pluck', oct: 0, vel: 0.032, pat: [[0, [0]], [2, [1]], [4, [2]]] }, mel: { dens: 0.5, fall: true }, spark: null, birds: false, wind: 0.05 },
+  f8: { bpm: 52, root: 50, scale: SCALES.lydian, penta: false, prog: [0, 1, 0, 4, 2, 1, 0, 4], pad: { cut: 800, gain: 0.007 }, mel: { dens: 0.4 }, birds: false },
   // the pond
   p1: { bpm: 54, scale: SCALES.major, penta: true, prog: [0, 3, 0, 4, 5, 3, 1, 4], arp: { voice: 'celesta', oct: 1, vel: 0.028, ripple: true, pat: [[0, [0, 2, 3], 0.12], [4, [1]], [6, [2, 3, 4], 0.12], [10, [3]]] }, mel: { dens: 0.5 }, frogs: false },
   p2: { bpm: 84, beats: 3, sub: 2, root: 57, scale: SCALES.major, prog: [0, 3, 4, 0, 5, 3, 4, 0], pad: { cut: 1100 }, arp: { voice: 'celesta', oct: 1, vel: 0.03, pat: WALTZ }, mel: { dens: 0.6 }, spark: { voice: 'bell', p: 0.08, vel: 0.022, oct: 3 }, rhythms: RW },
@@ -138,7 +140,7 @@ class Music {
   ok() { return !!this.ctx; }
   // call from a click; pass a context only for offline tests
   start(given) {
-    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    if (this.ctx) return; // (made once. What wakes it is wake, from a touch or from the watch)
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC && !given) return;
@@ -163,9 +165,89 @@ class Music {
       for (let i = 0; i < 48; i++) { const k = i / 47; this.cUp[i] = Math.max(0.0001, Math.sin(k * Math.PI / 2)); this.cDown[i] = Math.max(0.0001, Math.cos(k * Math.PI / 2)); }
       if (!given) {
         this.timer = setInterval(() => this.tick(), 70);
-        document.addEventListener('visibilitychange', () => { if (!this.ctx) return; if (document.hidden) this.ctx.suspend(); else this.ctx.resume(); });
+        if (!this.listening) { // (once: a context made anew later is looked after by the same listeners)
+          this.listening = true;
+          document.addEventListener('visibilitychange', () => { if (document.hidden) this.away(); else this.back(); });
+          window.addEventListener('pageshow', () => this.back());
+        }
       }
     } catch (e) { this.ctx = null; }
+  }
+  // ----- keeping the sound alive on phones -----
+  // A phone that locks its screen, takes a call or goes to another app cuts the sound off, and does not always give it back. The context may
+  // stay asleep or "interrupted". Or, on iPhones, it says that it runs while its clock stands still and nothing is heard: that is what a
+  // resume() in the very moment the page comes back can leave behind, and no later resume() mends it, since it "runs" already.
+  // So the clock is watched (from the timer of the music). Asleep, it is asked to wake, a moment after the page is back and a few times more.
+  // Running with a clock that stands still, it is put to sleep and woken again, which is what brings it back there. What neither mends is
+  // marked dead, and made anew at her next touch (renew).
+  away() { // the page is hidden: the music stops with it
+    const c = this.ctx; this.hid = true;
+    if (!c || c.state === 'closed') return;
+    try { const p = c.suspend(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* the phone has stopped it already */ }
+  }
+  back() { // the page is seen again: the watch begins afresh, and wakes it in a moment
+    const now = performance.now();
+    if (this.hid) this.came = true; // (her first touch after it puts an iPhone's context to sleep and wakes it once, see the interface)
+    this.hid = false; this.backAt = now; this.seenW = now; this.seenS = ''; this.askAt = 0; this.asks = 0; this.kicks = 0; this.touches = 0; this.stuck = false; this.spent = false;
+    // (the timer of the music may still be running slow from the time the page was hidden: the first look is taken by a timer of its own)
+    if (this.ctx) { setTimeout(() => this.watch(), 280); setTimeout(() => this.watch(), 1250); }
+  }
+  watch() {
+    const c = this.ctx, now = performance.now();
+    if (!c || c.state === 'closed' || document.hidden) { this.watchW = now; return; }
+    if (now - (this.watchW || now) > 1500) { this.hid = true; this.back(); } // (a page that a phone froze without a word is back when its timer runs again)
+    this.watchW = now;
+    const st = c.state, t = c.currentTime;
+    if (st !== this.seenS) { this.seenS = st; this.seenW = now; } // a change of state is given a moment before it is judged
+    if (st === 'running') {
+      if (t !== this.seenT) { this.seenT = t; this.seenW = now; this.ran = true; this.asks = 0; this.kicks = 0; this.touches = 0; this.stuck = false; this.dead = false; return; } // it plays
+      // it says it runs, and its clock stands still. (Only a context that has played before is judged so, and patiently: one that is
+      // slow to begin, over a wireless headset say, must not be put to sleep for it)
+      const still = now - this.seenW;
+      if (!this.ran || this.spent) return;
+      this.stuck = still > 1800;
+      if (still > 1200 && now - (this.kickAt || 0) > 2200) { if ((this.kicks || 0) >= 2) this.dead = true; else this.kick(); }
+      return;
+    }
+    this.stuck = false;
+    // asleep or cut off. (Before it has ever played only a touch may wake it: a browser's rule, and asking would only fill its console)
+    if (this.ran && (this.asks || 0) < 6 && now - (this.backAt || 0) > 250 && now - (this.askAt || 0) > 900) { this.askAt = now; this.asks = (this.asks || 0) + 1; this.wake(); }
+    if (this.ran && !this.spent && (this.touches || 0) >= 3 && now - (this.touch0 || now) > 3000) this.dead = true; // it has played, she has touched the page again and again, and it sleeps on
+  }
+  // asked to run: by the watch, and from inside a touch (touch true), which is the one place a phone hears it at first
+  wake(touch) {
+    const c = this.ctx, now = performance.now();
+    if (!c || c.state === 'closed' || c.state === 'running' || now < (this.kickUntil || 0)) return;
+    if (touch && now - (this.touchAt || 0) > 600) { this.touchAt = now; this.touches = (this.touches || 0) + 1; if (this.touches === 1) this.touch0 = now; }
+    try { const p = c.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* the next ask tries again */ }
+  }
+  // put to sleep and woken a moment later
+  kick() {
+    const c = this.ctx, now = performance.now();
+    if (!c || c.state === 'closed' || now < (this.kickUntil || 0)) return;
+    this.kickAt = now; this.kickUntil = now + 250; this.kicks = (this.kicks || 0) + 1;
+    try { const p = c.suspend(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* woken all the same */ }
+    setTimeout(() => { if (this.ctx !== c) return; this.kickUntil = 0; this.seenW = performance.now(); this.wake(); }, 230);
+  }
+  // A context that nothing wakes is left behind and a new one made in its place. Called from inside a touch, where a phone lets a context begin.
+  // The music takes up the world it was in. The game brings back the painting's air, the night and the step, as it does every frame
+  renew() {
+    const old = this.ctx, now = performance.now();
+    this.dead = false; this.kicks = 0; this.touches = 0;
+    if (!old) return false;
+    if ((this.renews || 0) >= 2) { this.spent = true; this.stuck = false; return false; } // twice is enough: after that it is left as it is until the page has been away again
+    if (now - (this.renewAt || 0) < 8000) return false;
+    this.stuck = false;
+    this.renews = (this.renews || 0) + 1; this.renewAt = now;
+    const idx = this.idx, level = this.level;
+    clearInterval(this.timer);
+    try { const p = old.close(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* let go either way */ }
+    this.ctx = null; this.group = null; this.old = []; this.cur = null; this.playList = null; this.W = null; this.rush = null; this.idx = -1; this.themeId = null;
+    this.slots.fill(0); this.ran = false; this.seenS = ''; this.seenT = -1; this.seenW = now; this.asks = 0; this.kickUntil = 0;
+    this.start();
+    if (!this.ctx) return false;
+    if (idx >= 0) this.setChapter(idx, level, 1.5);
+    return true;
   }
   setVolume(v) { this.vol = v; if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : v * 1.5, this.ctx.currentTime, 0.05); }
   setLevel(k) { if (k === this.level) return; this.level = k; if (this.group) this.group.windGain && this.setWind(); }
@@ -751,6 +833,7 @@ class Music {
   // how long one step lasts now: at the top it quickens a little, more where the world dances
   stepLen(g) { const q = g.score.grow && g.score.grow.quick !== undefined ? g.score.grow.quick : 0.06; return g.stepDur * (1 - q * Math.max(0, (this.useInten ? g.I : 0) - 2) / 3); }
   tick() {
+    this.watch();
     const g = this.group;
     if (!g || !this.ctx || this.ctx.state !== 'running') return;
     const now = this.ctx.currentTime;

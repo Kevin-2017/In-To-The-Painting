@@ -43,6 +43,7 @@ const App = {
   init() {
     this.lang = LS.get('ruhua.lang', 'en') === 'zh' ? 'zh' : 'en'; // English, until she chooses otherwise at the top of the title
     this.coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    { const ua = navigator.userAgent || ''; this.ios = /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1); } // an iPhone or an iPad, whatever the browser
     if (ENERGY) { LESSONS.fly.text = FLY_ENERGY.text; LESSONS.fly.touch = FLY_ENERGY.touch; } // (0.9) flying is taught with its beats
     this.ended = LS.get('ruhua.monet.fin', '') === '1';
     if (this.coarse) $('app').classList.add('coarse');
@@ -136,9 +137,13 @@ const App = {
     $('q2').textContent = this.t(UI.qHigh); $('q1').textContent = this.t(UI.qMid); $('q0').textContent = this.t(UI.qLow);
     $('btnRestart').textContent = this.t(UI.restart);
     let hidLeft = 0; for (const ch of WORLDS) for (const e of ch.effects) if (e.hidden && !(g && g.caps[e.id])) hidLeft++; // how many paintings are still hidden from her
-    $('fnA').textContent = this.t(UI.fnA); $('fnC').textContent = this.t(UI.fnC);
-    $('fnD').textContent = this.t(UI.fnD1) + ' ' + (hidLeft ? this.t(hidLeft === 1 ? UI.fnD2one : UI.fnD2).replace('#', String(hidLeft)) : this.t(UI.fnD2all));
-    $('fnShare').textContent = this.t(UI.fnShare); $('fnBack').textContent = this.t(UI.fnBack); $('alShow').textContent = this.t(UI.myShow);
+    $('fnA').textContent = this.t(UI.fnA);
+    { // the closing line in the phrases it is written in: the first stands alone, the others stay whole and share a line where there is room
+      const c = $('fnC'), parts = this.t(UI.fnC).split('|'); c.textContent = '';
+      parts.forEach((ph, i) => { const sp = document.createElement('span'); sp.textContent = ph; if (parts.length > 1) sp.className = i ? 'ph' : 'ph first'; c.appendChild(sp); });
+    }
+    $('fnD').textContent = hidLeft ? this.t(hidLeft === 1 ? UI.fnD2one : UI.fnD2).replace('#', String(hidLeft)) : this.t(UI.fnD2all);
+    $('fnShare').textContent = this.t(UI.save); $('fnShareL').textContent = this.t(UI.fnShare); $('fnX').textContent = this.t(UI.shareX); $('fnIG').textContent = this.t(UI.shareIG); $('fnBack').textContent = this.t(UI.fnBack); $('alShow').textContent = this.t(UI.myShow);
     { const b = $('fnB'), d = g ? g.days : 0; b.textContent = this.t(UI.fnB); if (d > 1) { const sm = document.createElement('small'); sm.textContent = this.t(UI.fnDays).replace('#', String(d)); b.appendChild(sm); } }
     $('alCredit').textContent = this.t(UI.credit);
     $('dtBack').textContent = this.t(UI.back); $('dtPrev').textContent = this.t(UI.prev); $('dtNext').textContent = this.t(UI.next);
@@ -553,16 +558,17 @@ const App = {
   // To X or to Instagram, with the words. On a phone the system's sheet carries the card (and for X the words too) into the app she
   // picks there. At a desk X is opened with the words written and the card on the clipboard to be pasted in; Instagram is opened
   // with the card saved as a file and the words on the clipboard. Whatever a browser refuses falls back to saving the card
-  shareTo(kind) {
-    const id = this.detail; if (!id) return;
-    track('share', { to: kind, id: String(id).startsWith('free:') ? 'view' : id });
-    const free = String(id).startsWith('free:'), tip = $('dtTip'), shape = kind === 'ig' ? 'tall' : 'wide', site = SITE_URL;
-    const text = ($('dtCap').value || this.caption(id)).trim(), tags = this.t(UI.capTags), full = text + '\n\n' + site.replace(/^https?:\/\//, '') + '\n' + tags;
-    const name = 'intothepainting-' + (free ? 'view' : id) + (kind === 'ig' ? '-4x5' : '-16x9') + '.png';
-    const ready = this.cards && this.cards[shape];
-    const card = ready ? Promise.resolve(ready) : (this.cardsReady || Promise.resolve()).then(() => (this.cards && this.cards[shape]) || Promise.reject(new Error('no card')));
-    const show = (cd) => { try { const im = $('shareImg'); if (this.shownUrl) URL.revokeObjectURL(this.shownUrl); this.shownUrl = URL.createObjectURL(cd.blob); im.src = this.shownUrl; im.hidden = false; } catch (e) { /* not shown */ } return cd; };
-    const say = (k, link) => { tip.textContent = this.t(UI[k]); if (link) { const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = ' ' + link.replace(/^https?:\/\//, '').split('?')[0]; tip.appendChild(document.createTextNode(this.t(UI.tipOpen))); tip.appendChild(a); } };
+  shareTo(kind, what) {
+    const ex = what === 'show', id = this.detail; if (!ex && !id) return;
+    track('share', { to: kind, id: ex ? 'exhibition' : String(id).startsWith('free:') ? 'view' : id });
+    const free = !ex && String(id).startsWith('free:'), tip = $(ex ? 'fnTip' : 'dtTip'), shape = kind === 'ig' ? 'tall' : 'wide', site = SITE_URL;
+    const text = (ex ? this.t(UI.capShow) : $('dtCap').value || this.caption(id)).trim(), tags = this.t(UI.capTags), full = text + '\n\n' + site.replace(/^https?:\/\//, '') + '\n' + tags;
+    const name = ex ? 'intothepainting-exhibition.png' : 'intothepainting-' + (free ? 'view' : id) + (kind === 'ig' ? '-4x5' : '-16x9') + '.png';
+    const ready = ex ? this.poster : this.cards && this.cards[shape];
+    const card = ready ? Promise.resolve(ready) : ex ? (this.posterReady || Promise.resolve()).then(() => this.poster || Promise.reject(new Error('no card'))) : (this.cardsReady || Promise.resolve()).then(() => (this.cards && this.cards[shape]) || Promise.reject(new Error('no card')));
+    const show = (cd) => { try { const im = $(ex ? 'fnImg' : 'shareImg'); if (this.shownUrl) URL.revokeObjectURL(this.shownUrl); this.shownUrl = URL.createObjectURL(cd.blob); im.src = this.shownUrl; im.hidden = false; } catch (e) { /* not shown */ } return cd; };
+    const turn = (this.shareN = (this.shareN || 0) + 1); // (a slow clipboard must not write its line over that of a later press)
+    const say = (k, link) => { if (turn !== this.shareN) return; tip.textContent = this.t(UI[k]); if (link) { const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener'; a.textContent = ' ' + link.replace(/^https?:\/\//, '').split('?')[0]; tip.appendChild(document.createTextNode(this.t(UI.tipOpen))); tip.appendChild(a); } };
     const copyText = () => { try { return navigator.clipboard.writeText(full); } catch (e) { return Promise.reject(e); } };
     const save = () => card.then((cd) => this.download(cd.blob, name));
     const open = (url) => { let w = null; try { w = window.open(url, '_blank'); if (w) w.opener = null; } catch (e) { w = null; } return w; };
@@ -874,8 +880,8 @@ const App = {
     if (g.mode !== 'play' || this.finaleOn) return;
     wall.innerHTML = '';
     ids.forEach((id, i) => { const el = document.createElement('i'), u = g.caps[id]; if (u && u.length > 8) el.style.backgroundImage = 'url(' + u + ')'; el.style.setProperty('--r', ((((i * 37) % 7) - 3) * 0.45).toFixed(2) + 'deg'); wall.appendChild(el); });
-    for (const id of ['fnA', 'fnB', 'fnC', 'fnD', 'fnActs']) $(id).classList.remove('on');
-    $('fnImg').hidden = true; $('fnTip').textContent = '';
+    for (const id of ['fnA', 'fnB', 'fnC', 'fnD', 'fnActs', 'fnShareL']) $(id).classList.remove('on');
+    $('fnImg').hidden = true; $('fnTip').textContent = ''; this.prepPoster();
     this.texts(); this.closeAlbum(); this.closeHelp(); if (this.lesson) this.lessonEnd(8); this.hide('hint');
     if (g.free) g.setFree(false);
     g.auto = false; this.onAuto(false); g.keys = {}; g.reverie = true; this.finaleOn = true;
@@ -886,7 +892,7 @@ const App = {
     const t1 = 4.8 + ids.length * 0.22;
     at('B', t1 + 1.3, on('fnB'));
     at('C', t1 + 5.0, () => { $('fnC').classList.add('on'); if (first && this.audio) this.audio.door(); });
-    at('D', t1 + 9.8, on('fnD')); at('E', t1 + 11.2, on('fnActs'));
+    at('D', t1 + 9.8, on('fnD')); at('E', t1 + 11.2, () => { $('fnActs').classList.add('on'); $('fnShareL').classList.add('on'); });
   },
   closeFinale() {
     if (!this.finaleOn) return;
@@ -899,7 +905,7 @@ const App = {
     try { return Promise.race([document.fonts.load(font, text), new Promise((r) => setTimeout(r, 1600))]).catch(() => {}); } catch (e) { return Promise.resolve(); }
   },
   // the whole wall as one sheet to pass on
-  async sharePoster() {
+  async posterCanvas() {
     const g = this.game, ids = this.mainIds(), en = this.lang === 'en';
     const load = (src) => new Promise((res) => { if (!src || src.length < 9) { res(null); return; } const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
     const ims = await Promise.all(ids.map((id) => load(g.caps[id])));
@@ -913,7 +919,8 @@ const App = {
     c.fillStyle = '#1f2238'; c.textBaseline = 'alphabetic';
     const d = new Date();
     c.globalAlpha = 0.72; c.font = '600 26px ' + serif; c.fillText(this.t(UI.title) + '　' + this.t(UI.sub), M, 96);
-    c.textAlign = 'right'; c.font = '400 20px ' + sans; c.fillText(d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate(), W - M, 96); c.textAlign = 'left';
+    // where the game is found, at the head of the sheet beside its name
+    c.textAlign = 'right'; c.globalAlpha = 0.8; c.font = '500 21px ' + sans; c.fillText(SITE_URL.replace(/^https?:\/\//, ''), W - M, 96); c.textAlign = 'left';
     c.globalAlpha = 1; c.font = (en ? 'italic 500 66px ' : '900 62px ') + serif; c.fillText(l1, M, 196); c.fillText(l2, M, 276);
     ims.forEach((im, i) => {
       const x = M + (i % cols) * (cw + gap), y = top + Math.floor(i / cols) * (chh + gap);
@@ -925,20 +932,38 @@ const App = {
     // the closing line, on one line if there is room, else broken at its first full stop
     const cut = end.indexOf(en ? '. ' : '。') + 1, parts = c.measureText(end).width <= W - 2 * M || cut <= 0 ? [end] : [end.slice(0, cut).trim(), end.slice(cut).trim()];
     parts.forEach((ln, i) => c.fillText(ln, M, y1 + 86 + i * 46));
-    c.globalAlpha = 0.6; c.font = '400 19px ' + sans; c.fillText(names + '　1867–1926', M, H - 58);
-    let url = ''; try { url = cv.toDataURL('image/png'); } catch (e) { url = ''; }
-    if (url) this.offer(url, 'ruhua-exhibition.png', $('fnImg'), $('fnTip'));
+    // the four places and his years at the foot, and the day she hung her wall where the line leaves room for it
+    const foot = names + '　1867–1926', day = d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate();
+    c.globalAlpha = 0.6; c.font = '400 19px ' + sans; c.fillText(foot, M, H - 58);
+    if (c.measureText(foot).width + 36 + c.measureText(day).width <= W - 2 * M) { c.textAlign = 'right'; c.fillText(day, W - M, H - 58); c.textAlign = 'left'; }
+    c.globalAlpha = 1;
+    return cv;
+  },
+  // saved, or handed to the system's sheet where there is one
+  async sharePoster() {
+    const cv = await this.posterCanvas(); let url = ''; try { url = cv.toDataURL('image/png'); } catch (e) { url = ''; }
+    if (url) this.offer(url, 'intothepainting-exhibition.png', $('fnImg'), $('fnTip'));
+  },
+  // made as soon as the ending opens, so that it lies ready when a button is pressed (only in that moment may a page open a window or the share sheet)
+  prepPoster() {
+    this.poster = null;
+    this.posterReady = this.posterCanvas().then((cv) => new Promise((res) => { try { cv.toBlob((b) => { this.poster = b ? { blob: b } : null; res(); }, 'image/png'); } catch (e) { res(); } })).catch(() => {});
   },
   // music from the first moment a browser allows it: at once where it may, else with the first touch of the page
-  wakeSound() {
+  wakeSound(ev) {
     const a = this.audio, g = this.game;
     // an iPhone with its ring switch on silent mutes whatever a page plays through Web Audio, unless the page says that what it plays is media
     try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) { /* no such thing here */ }
     try { a.start(); } catch (e) { return; }
+    // the end of a touch, a click or a key: what every browser takes as her word that sound may begin
+    const word = !!ev && (ev.type === 'pointerup' || ev.type === 'touchend' || ev.type === 'click' || ev.type === 'keydown');
+    // a context that nothing has woken since the page came back (see the watch in the music) is made anew, now that she touches the page
+    if (word && a.dead) { try { a.renew(); } catch (e) { /* the old one stays */ } }
     const c = a.ctx;
     if (c && c.state !== 'running') { // asleep, or cut off by a call or by another app: woken from inside a touch, with one sample of silence as the phones of old want it
-      try { c.resume(); const s = c.createBufferSource(); s.buffer = c.createBuffer(1, 1, c.sampleRate); s.connect(c.destination); s.start(0); } catch (e) { /* the next touch tries again */ }
-    }
+      try { a.wake(true); const s = c.createBufferSource(); s.buffer = c.createBuffer(1, 1, c.sampleRate); s.connect(c.destination); s.start(0); } catch (e) { /* the next touch tries again */ }
+    } else if (c && word && a.came && this.ios) a.kick(); // back from a locked screen an iPhone can say that it plays, and be silent: put to sleep and woken once, it plays
+    if (word) a.came = false;
     this.mediaChannel();
     if (a.ok() && g && g.mode === 'title' && !this.titleSong) { this.titleSong = true; a.setChapter(Math.max(0, g.wi), 2, 3); }
   },
@@ -946,8 +971,7 @@ const App = {
   mediaChannel() {
     if (this.hush === undefined) {
       this.hush = null;
-      const ua = navigator.userAgent || '';
-      if (navigator.audioSession || !(/iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1))) return;
+      if (navigator.audioSession || !this.ios) return;
       try {
         const n = 11025, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
         w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
@@ -971,7 +995,7 @@ const App = {
     const g = this.game;
     { // where a browser holds the sound back until the page is touched (at first, or after a call or another app took it), a line says so, and goes as soon as it plays
       const a = this.audio, c = a && a.ctx, now = performance.now();
-      const need = !!c && c.state !== 'running' && a.vol > 0.005 && !document.hidden && !this.panel && (g.mode === 'title' || g.mode === 'play');
+      const need = !!c && (c.state !== 'running' || a.stuck) && a.vol > 0.005 && !document.hidden && !this.panel && (g.mode === 'title' || g.mode === 'play'); // (stuck: it says it plays, and its clock stands still)
       if (!need) this.sndSince = 0; else if (!this.sndSince) this.sndSince = now;
       const on = need && now - this.sndSince > 700, el = $('soundHint');
       if (on !== !!this.sndOn) { this.sndOn = on; el.classList.toggle('on', on); }
@@ -1103,7 +1127,7 @@ const App = {
   bind() {
     const g = this.game, cv = $('view');
     const begin = (fresh) => {
-      this.audio.start();
+      this.audio.start(); this.audio.wake(true);
       this.hide('title'); $('btnLang').style.display = 'none';
       if (fresh) { this.ended = false; LS.set('ruhua.monet.fin', ''); for (const id in g.caps) { PICS.del(id); delete g.big[id]; } }
       this.finaleDue = 0;
@@ -1119,7 +1143,7 @@ const App = {
     // (a browser decides which touch counts: so every kind is listened for, until the sound runs)
     const WAKE = ['pointerdown', 'pointerup', 'mousedown', 'touchend', 'click', 'keydown'];
     // (they stay on: a call or another app can cut the sound off again, and the next touch brings it back)
-    const wake = () => this.wakeSound();
+    const wake = (ev) => this.wakeSound(ev);
     for (const ev of WAKE) window.addEventListener(ev, wake, true);
     wake();
     $('btnStart').addEventListener('click', () => begin(false));
@@ -1141,6 +1165,7 @@ const App = {
       pr.addEventListener('pointercancel', () => { sx = null; }); }
     $('fnBack').addEventListener('click', () => this.closeFinale());
     $('fnShare').addEventListener('click', () => this.sharePoster());
+    $('fnX').addEventListener('click', () => this.shareTo('x', 'show')); $('fnIG').addEventListener('click', () => this.shareTo('ig', 'show'));
     $('alShow').addEventListener('click', () => { this.closeAlbum(); this.openFinale(false); });
     $('shutter').addEventListener('click', () => { if (g.free && g.freeK > 0.8) g.pendingFree = true; });
     $('dtSave').addEventListener('click', () => this.shareCard());

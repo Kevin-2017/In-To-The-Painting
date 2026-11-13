@@ -1,6 +1,6 @@
 {
   "name": "intothepainting",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "private": true,
   "description": "Into the Painting (入画 追光): walk into the paintings of Claude Monet. One page, raw WebGL2, no dependencies.",
   "scripts": {

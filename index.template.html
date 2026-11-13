@@ -281,8 +281,15 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 .fin .fc { font-size: clamp(21px, 3.3vw, 40px); font-weight: 900; letter-spacing: 0.1em; line-height: 1.5; margin: clamp(2px, 1vh, 10px) 0; }
 .en .fin .fb, .en .fin .fc { font-family: var(--font-latin); font-style: italic; font-weight: 500; letter-spacing: 0.01em; }
 .en .fin .fc { font-size: clamp(25px, 3.9vw, 48px); line-height: 1.2; }
+.fin .fc .ph { display: inline-block; }
+.fin .fc .ph.first { display: block; }
 .fin .fd { font-family: var(--font-meta); font-size: 13px; line-height: 1.9; letter-spacing: 0.08em; color: var(--mute); max-width: 44em; }
 .fin .acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 4px; }
+.fin .shl { font-family: var(--font-meta); font-size: 12px; letter-spacing: 0.3em; color: var(--sun); opacity: 0; transition: opacity 1.8s ease; margin-top: 6px; }
+.fin .shl.on { opacity: 0.9; }
+.fin .acts #fnX, .fin .acts #fnIG { border-color: var(--sun); color: var(--sun); }
+.fin .acts #fnX:hover, .fin .acts #fnIG:hover { background: var(--sun); color: var(--dusk); }
+#fnTip a { color: var(--sun); }
 .fin .acts .plaque { font-size: 15px; padding: 10px 22px 10px 24px; }
 .wall { --wc: 9; --wg: clamp(4px, 0.8vw, 9px); display: flex; flex-wrap: wrap; justify-content: center; gap: var(--wg); width: 100%; }
 .wall i { width: calc((100% - (var(--wc) - 1) * var(--wg)) / var(--wc) - 0.1px); aspect-ratio: 3 / 2; background: var(--mat) center / cover no-repeat; border: 2px solid var(--mat); box-shadow: 0 4px 14px rgba(8, 10, 24, 0.5); opacity: 0; transform: scale(0.5) rotate(var(--r, 0deg)); transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.2, 1.5, 0.4, 1); }
@@ -491,7 +498,8 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
       <p class="fb" id="fnB"></p>
       <p class="fc" id="fnC"></p>
       <p class="fd" id="fnD"></p>
-      <div class="acts" id="fnActs"><button class="plaque" id="fnShare" type="button"></button><button class="plaque quiet" id="fnBack" type="button"></button></div>
+      <div class="shl" id="fnShareL"></div>
+      <div class="acts" id="fnActs"><button class="plaque" id="fnX" type="button"></button><button class="plaque" id="fnIG" type="button"></button><button class="plaque quiet" id="fnShare" type="button"></button><button class="plaque quiet" id="fnBack" type="button"></button></div>
       <img id="fnImg" alt="" hidden><span id="fnTip"></span>
     </div>
   </section>
