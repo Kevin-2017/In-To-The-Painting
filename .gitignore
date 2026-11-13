@@ -33,8 +33,7 @@ node_modules/
 /AGENT*.md
 /FILM.md
 
-# kept out of the public repository: the id of the visitor counter, and the working documents of the development sessions
-/.umami
+# working documents of the development sessions: they live in the private repository (here only as links)
 /NOTES.md
 /DESIGN.md
 /launch/上线指南.md

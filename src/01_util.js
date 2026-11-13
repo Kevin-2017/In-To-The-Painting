@@ -129,6 +129,6 @@ function angDiff(a, b) { // shortest signed difference a - b
   return d;
 }
 
-// What happens in a game, told to whoever is counting: the page of the web site may give a function window.itpTrack(name, props)
-// (see launch/README.md). Where there is none, as inside Claude, nothing is sent and nothing is kept
+// What happens in a game is told to the page that hosts it, if that page wants to know: it may give a function
+// window.itpTrack(name, props). Where there is none nothing is sent and nothing is kept
 const track = (name, props) => { try { if (typeof window.itpTrack === 'function') window.itpTrack(name, props || {}); } catch (e) { /* counting never gets in the way of playing */ } };

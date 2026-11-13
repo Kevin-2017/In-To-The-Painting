@@ -2,26 +2,17 @@
 
 Walk into the paintings of Claude Monet. Four worlds from his life, with the time of day and the season as the mechanic. Stand at an easel, wait for the light he painted, and the view becomes your own painting.
 
-One HTML page, raw WebGL2, no dependencies. The site will live at https://intothepainting.com
+One HTML page, raw WebGL2, no dependencies. Play it at https://intothepainting.com
 
 ## Build
 
 ```
-npm run build   # dist/  for local play, and the copy that runs inside Claude
-npm run site    # site/  the web site, with link card tags for intothepainting.com
+npm run build     # dist/  for local play
+npm run site      # site/  the same game as a web site, with link card tags for intothepainting.com
+npm run build:08  # dist/  the earlier line, in which the parasol never tires
 ```
 
 Node 18 or newer. There is nothing to install.
-
-## Deploy
-
-Cloudflare Pages is connected to this repository. Every push to `main` runs `npm run site` and publishes `site/`.
-
-| Setting in Cloudflare Pages | Value |
-|---|---|
-| Production branch | main |
-| Build command | npm run site |
-| Build output directory | site |
 
 ## Layout
 
@@ -33,14 +24,8 @@ Cloudflare Pages is connected to this repository. Every push to `main` runs `npm
 | film/ | storyboard and tools of the trailer (frames and films are not kept here) |
 | test/ | headless play tests, written for the development container (Chrome and Playwright) |
 
-## Counting visitors
-
-The site build can load the Umami counter and hand it what happens in a game (begin, catch, world, finished, share, seek).
-Give the build the website id in the variable `UMAMI` (on Cloudflare Pages: Settings, Variables and Secrets), or put it in a
-file `.umami` beside `build.mjs`. The id is not kept in this repository. Without it nothing is counted.
-
 ## 中文
 
 入画 追光，走进莫奈的画里。四个世界，时间和季节是玩法，在画架前等到他落笔的那一刻的光，眼前的风景就成为你的画。
 
-改完代码推到 `main`，Cloudflare Pages 会自动构建并发布到 intothepainting.com。本地试玩运行 `npm run build`，然后打开 dist/index.html。
+本地试玩运行 `npm run build`，然后打开 dist/index.html。
