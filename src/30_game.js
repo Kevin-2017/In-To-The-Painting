@@ -95,6 +95,7 @@ const PACE = { c1: { rate: 0.0147, paint: 4.0, rest: 7 } };
 // same picture a little less sharp, then the plain setting. It is asked again every twenty seconds for as long as she plays, so
 // that a machine grown warm, and slower for it, is eased as well
 const SAVER = [[1, 1, 17], [1, 0.82, 22], [0, 1, 1e9]];
+const BEAT_NODES = [2, 6, 10, 14, 18]; // (0.9) with so many paintings the parasol gains a beat
 const DAWN0 = 0.157; // the game begins here, in the night before that sunrise
 // lamps that burn while it is dark: x, z, height above the water or the ground, colour, size
 const LAMPS = {
@@ -124,7 +125,7 @@ class Game {
     this.dyn = new Strokes(MAX_DYN);
     this.auto = false; this.doorOn = false; this.doorT = 0; this.flash = 0;
     this.quality = 2; this.fpsAcc = 0; this.fpsN = 0; this.fpsHold = 6; this.autoQuality = true;
-    this.beats = 2; this.beatsMax = ENERGY ? 2 : Infinity; this.beatDry = false;
+    this.beats = 1; this.beatsMax = ENERGY ? 1 : Infinity; this.beatDry = false;
     this.saver = false; this.saverStep = 0; this.resK = 1; this.costs = []; this.probeIn = 2.5; this.probeNext = false; this.lastCost = 0;
     this.cam = { pos: [0, 0, 0], fwd: [0, 0, -1], right: [1, 0, 0], up: [0, 1, 0], fov: TP_FOV };
     this.env = {}; this.envB = {};
@@ -172,14 +173,16 @@ class Game {
 
   // ----- worlds -----
   // the paintings of a world that everyone is shown, and those that stand off the path at an easel nobody points to
-  // (0.9) How many beats the parasol has before she must touch the ground again. Two at first; the paintings bring more:
-  // three from the second, then one more with every fourth (6, 10, 14, 18, 22), and each hidden painting adds one of its own.
-  // With all twenty five it no longer tires. In the 0.8 line it never did
+  // (0.9) How many beats the parasol has before she must touch the ground again. One at first; the paintings bring more: one more
+  // at each of BEAT_NODES (2, 6, 10, 14, 18 paintings of the twenty five), and with all twenty five it no longer tires.
+  // In the 0.8 line it never did
+  mainCount() { let n = 0; for (const ch of WORLDS) for (const e of ch.effects) if (!e.hidden && this.caps[e.id]) n++; return n; }
   beatsCap() {
     if (!ENERGY) return Infinity;
-    let main = 0, hid = 0, left = false;
-    for (const ch of WORLDS) for (const e of ch.effects) { if (this.caps[e.id]) { if (e.hidden) hid++; else main++; } else if (!e.hidden) left = true; }
-    return left ? (main < 2 ? 2 : 3 + Math.floor((main - 2) / 4)) + hid : Infinity;
+    const main = this.mainCount();
+    if (!this.mainLeft()) return Infinity;
+    let cap = 1; for (const x of BEAT_NODES) if (main >= x) cap++;
+    return cap;
   }
   capCount(ch) { let n = 0; for (const e of ch.effects) if (!e.hidden && this.caps[e.id]) n++; return n; }
   hidCount(ch) { let n = 0; for (const e of ch.effects) if (e.hidden && this.caps[e.id]) n++; return n; }

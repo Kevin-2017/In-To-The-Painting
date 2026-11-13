@@ -210,29 +210,64 @@ const App = {
     this.cardUntil = performance.now() / 1000 + 8.7; this.hide('hint'); if (this.lesson) this.lessonEnd(1);
   },
   onArrive(ch) {
-    track('world', { id: ch.id });
+    track('world', { id: ch.id }); this.doorN = 0; this.doorTold = 0;
     this.show('hud'); this.dialKey = ''; this.thumbKey = ''; this.count();
     this.later('hint0', 6200, () => { if (this.game.mode === 'play') this.hint(this.coarse ? 'hintTouch' : 'hintKeys', 9, true); });
   },
   onPhase() { this.dialKey = ''; this.thumbKey = ''; },
   onSpot(i) {
     this.thumbKey = '';
-    if (i < 0 && this.gainHere) { this.gainHere = false; this.gainUntil = performance.now() / 1000 + 6; } // she walks on from a catch: the row of frames stays six seconds more
+    if (i < 0 && this.gainHere) { this.gainHere = false; this.gainUntil = performance.now() / 1000 + 6; }
+    if (i < 0 && this.caughtHere) { this.caughtHere = false; if (ENERGY) this.beatsGrow(); } // (0.9) and the catch is counted towards the parasol's next beat // she walks on from a catch: the row of frames stays six seconds more
     if (i >= 0) this.hide('hint'); // at an easel the picture is left alone: no words are laid over it
   },
   onAuto(on) { $('btnSeek').classList.toggle('active', !!on); if (on) track('seek', {}); if (on && this.seen && !this.seen.sought) { this.seen.sought = 1; LS.set('ruhua.monet.learn', JSON.stringify(this.seen)); } }, // (she has used Seek: she need not be told of it again)
-  // (0.9) the parasol is spent in the air: the row of beats shakes, and the first time it is said what that means
-  onDry() { const b = $('beats'); b.classList.remove('dry'); void b.offsetWidth; b.classList.add('dry'); this.hint('beatsDry', 9, true); },
-  // (0.9) the row of beats: as many marks as the parasol has, the spent ones hollow
+  // (0.9) the parasol is spent in the air: the row of beats shakes, its line shows, and the first time it is said what that means
+  onDry() { const b = $('beats'); b.classList.remove('dry'); void b.offsetWidth; b.classList.add('dry'); this.beatsSayUntil = performance.now() / 1000 + 6; this.hint('beatsDry', 9, true, this.beatNode(this.game.mainCount())); },
+  beatNode(main) { for (const x of BEAT_NODES) if (x > main) return x; return 25; }, // with how many paintings the next beat comes (after the last node: all of them)
+  // (0.9) The row of beats: a mark for each beat the parasol has (the spent ones hollow), then one dashed mark for the beat still
+  // to be earned; over them, for a few seconds after a catch or when it is spent, how far she is from that beat (1 / 2).
+  // What it shows runs behind the game by one catch until the spark of that catch has arrived (beatsGrow)
   beatsRow() {
-    const g = this.game, b = $('beats'), cap = g.beatsMax, on = ENERGY && cap !== Infinity && g.mode === 'play' && g.spot < 0 && g.viewK < 0.05 && !g.free && !this.panel && !this.finaleOn && !g.trans && performance.now() / 1000 >= (this.cardUntil || 0);
+    const g = this.game, b = $('beats'), cap = g.beatsMax, now = performance.now() / 1000;
+    const on = ENERGY && cap !== Infinity && g.mode === 'play' && g.spot < 0 && g.viewK < 0.05 && !g.free && !this.panel && !this.finaleOn && !g.trans && now >= (this.cardUntil || 0);
     b.classList.toggle('on', on); if (!on) return;
-    const key = cap + '|' + g.beats;
-    if (key === this.beatsKey) return;
-    if (b.children.length !== cap) { b.innerHTML = ''; for (let i = 0; i < cap; i++) b.appendChild(document.createElement('i')); }
-    for (let i = 0; i < cap; i++) b.children[i].className = i < g.beats ? 'full' : '';
-    this.beatsKey = key;
+    const shown = Math.min(cap, this.capShown === undefined ? cap : this.capShown), left = Math.min(g.beats, shown), main = this.mainShown === undefined ? g.mainCount() : this.mainShown, node = this.beatNode(main);
+    const key = shown + '|' + left + '|' + main + '|' + this.lang;
+    if (key !== this.beatsKey) {
+      const pp = $('btPips');
+      if (pp.children.length !== shown + 1) { pp.innerHTML = ''; for (let i = 0; i <= shown; i++) pp.appendChild(document.createElement('i')); }
+      for (let i = 0; i < shown; i++) pp.children[i].className = i < left ? 'full' : '';
+      pp.children[shown].className = 'next';
+      $('btCap').textContent = this.t(node >= 25 ? UI.beatsFree : UI.beatsNext) + '　' + main + ' / ' + node;
+      this.beatsKey = key;
+    }
+    b.classList.toggle('say', now < (this.beatsSayUntil || 0));
   },
+  // (0.9) She walks on from a catch: a spark goes from the album to the row of beats, the count over the row goes up by one, and
+  // if that was a node the dashed mark fills and a card says what the parasol can do now and when the next beat comes
+  beatsGrow() {
+    const g = this.game, main = g.mainCount(), cap = g.beatsCap(), now = performance.now() / 1000;
+    if (cap === Infinity) { this.capShown = cap; this.mainShown = main; return; }
+    if (main === this.mainShown && cap === this.capShown) return;
+    this.beatsSayUntil = now + 10;
+    this.later('spark', 700, () => {
+      const land = () => {
+        const up = cap > (this.capShown === undefined ? cap : this.capShown);
+        this.mainShown = main; this.capShown = cap; this.beatsKey = ''; this.beatsRow();
+        const b = $('beats'); b.classList.remove('tick'); void b.offsetWidth; b.classList.add('tick');
+        if (up) { const pp = $('btPips'), el = pp.children[cap - 1]; if (el) el.classList.add('new'); if (this.lesson) this.lessonEnd(0.5); this.beatsSayUntil = performance.now() / 1000 + 12; this.lessonShow('beats'); }
+      };
+      const from = $('btnAlbum').getBoundingClientRect(), to = $('btPips').getBoundingClientRect(), app = $('app').getBoundingClientRect(), sp = document.createElement('span');
+      if (!sp.animate || to.width < 2 || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) { land(); return; }
+      sp.className = 'spark'; $('app').appendChild(sp);
+      const x0 = from.left - app.left + from.width / 2, y0 = from.top - app.top + from.height / 2, x1 = to.left - app.left + to.width / 2, y1 = to.top - app.top + to.height / 2;
+      const T = (x, y, k) => 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + k + ')';
+      sp.animate([{ transform: T(x0, y0, 0.4), opacity: 0 }, { transform: T(x0, y0, 1.5), opacity: 1, offset: 0.14 }, { transform: T((x0 + x1) / 2 + (x0 - x1) * 0.12, (y0 + y1) / 2 - 40, 1.2), opacity: 1, offset: 0.6 }, { transform: T(x1, y1, 0.8), opacity: 1, offset: 0.96 }, { transform: T(x1, y1, 2.2), opacity: 0 }],
+        { duration: 1250, easing: 'cubic-bezier(0.45, 0, 0.3, 1)' }).onfinish = () => { sp.remove(); land(); };
+    });
+  },
+  beatsText() { const g = this.game, cap = g.beatsCap(), node = this.beatNode(g.mainCount()); return this.t(node >= 25 ? UI.beatsUpLast : UI.beatsUp).replace('##', String(node)).replace('#', String(cap)); },
   onFly() { this.later('hintF', 900, () => { if (this.game.mode === 'play' && this.game.spot < 0) this.hint(this.coarse ? 'hintFlyTouch' : 'hintFly', 9, true); }); },
   onSlide() { this.later('hintG', 500, () => { if (this.game.mode === 'play' && this.game.spot < 0) this.hint('hintSlide', 7, true); }); },
   onSaver(step) { LS.set('ruhua.monet.sv', String(step)); },
@@ -244,6 +279,7 @@ const App = {
     if (big) PICS.put(e.id, big);
     const w = WORKS[e.id], g = this.game;
     track('catch', { id: e.id, n: Object.keys(g.caps).length, world: ch.id });
+    this.caughtHere = true;
     clearTimeout(this.timers.hint0);
     this.hide('hint');
     // what she has just caught: its name stands on the picture for a few seconds, its moment under it
@@ -257,11 +293,7 @@ const App = {
     // a painting from off the path says only that it was hidden: how many more there are is not told before the ending
     this.reward(big || url, e.hidden ? { text: this.t(UI.hid), n: this.ended ? g.hidCount(ch) : 0, total: this.ended ? hid.length : 0, gold: true }
       : { text: this.t(WORLD_TEXT[ch.id].name) + (n >= main.length ? '　' + this.t(UI.whole) : ''), n, total: main.length, gold: n >= main.length });
-    if (ENERGY) { // (0.9) a painting may bring the parasol another beat: said when the picture has gone into the album
-      const cap = g.beatsCap(), was = this.capWas === undefined ? cap : this.capWas; this.capWas = cap;
-      if (cap > was) this.later('beatsUp', 9200, () => this.hint(cap === Infinity ? 'beatsAll' : 'beatsUp', 9, false, cap));
-    }
-    if (!e.hidden && ch.door && n === ch.need) this.later('door', 7400, () => this.hint('hintDoor', 8));
+    if (ENERGY && !g.mainLeft() && !e.hidden) this.later('beatsUp', 9200, () => this.hint('beatsAll', 9)); // (0.9) with the last painting the parasol no longer tires
     // the last of the twenty five: the picture is left to stand a while, then the ending begins of itself
     if (!e.hidden && !g.mainLeft() && !this.ended) { this.ended = true; LS.set('ruhua.monet.fin', '1'); this.finaleDue = performance.now() / 1000 + 9.5; track('finished', { days: g.days }); }
   },
@@ -349,7 +381,7 @@ const App = {
     // the frame of the one just caught fills, and the name of the place is said beside the row for a few seconds
     const gn = this.wall(); gn.querySelector('.nm').textContent = chip.text;
     gn.classList.toggle('all', !!chip.gold); gn.classList.add('say'); this.later('gain', 5200, () => gn.classList.remove('say'));
-    this.gainUntil = performance.now() / 1000 + 60; this.gainHere = true; // it stands while she is still at this easel (a minute at most), and a little after
+    { const at = this.game.spot >= 0; this.gainUntil = performance.now() / 1000 + (at ? 60 : 6); this.gainHere = at; } // it stands while she is still at this easel (a minute at most), and six seconds after she has walked on
   },
 
   // ----- the album -----
@@ -693,11 +725,12 @@ const App = {
     this.capN = Object.keys(this.game.caps).length; this.dialShown = this.capN > 0; this.coachOff();
   },
   coachOff() { this.hide('coach'); $('coHalo').classList.remove('on'); $('flybtn').classList.remove('ghost'); },
+  nextName() { const g = this.game, nx = WORLDS[g.wi + 1]; return nx ? this.t(WORLD_TEXT[nx.id].name) : ''; },
   lessonShow(id) {
     const L = LESSONS[id], k = $('coKeys'); k.innerHTML = '';
     if (L.keys && !this.coarse) k.appendChild(this.kbd(L.keys));
-    $('coText').textContent = this.t(this.coarse && L.touch ? L.touch : L.text);
-    this.lesson = { id, at: performance.now() / 1000 }; this.show('coach');
+    $('coText').textContent = id === 'beats' ? this.beatsText() : this.t(this.coarse && L.touch ? L.touch : L.text).replace('#', this.nextName());
+    this.lesson = { id, at: performance.now() / 1000 }; this.show('coach'); $('coach').classList.toggle('gold', id === 'door' || id === 'beats'); // (the way on is said in gold)
     if (id === 'fly' && this.coarse && !this.touchFly) { // on a phone the parasol has no button: a ring is shown where a thumb would rest, while this is read
       const f = $('flybtn'), g = this.game; f.style.left = (g.cssW * 0.78).toFixed(0) + 'px'; f.style.top = (g.cssH * (this.lay && this.lay.tall ? 0.72 : 0.66)).toFixed(0) + 'px'; f.classList.add('ghost');
     }
@@ -720,7 +753,8 @@ const App = {
     else if (an === 'leave') r = rect($('btnLeave'));
     else if (an === 'thumbs') r = rect($('thumbs'));
     else if (an === 'fly' && this.coarse) r = rect($('flybtn'));
-    else if (an === 'marker') r = this.markOn ? rect($('marker').firstChild) : null;
+    else if (an === 'beats') r = rect($('beats')); // (the marks and the line over them)
+    else if (an === 'marker') { r = this.markOn ? rect($('marker').firstChild) : null; if (r && !$('marker').classList.contains('bare') && !$('marker').classList.contains('plain')) r.h += 22; } // (the ring, and under it its distance)
     else if (an === 'pillar') {
       const t = g.targetScreen();
       if (t && !t.behind) { const x = (t.nx * 0.5 + 0.5) * W, y = (1 - (t.ny * 0.5 + 0.5)) * H; if (x > 30 && x < W - 30 && y > 60 && y < H - 100) r = { x: x - 24, y: y - 92, w: 48, h: 108 }; }
@@ -791,6 +825,8 @@ const App = {
       else if (id === 'album') { done = this.albumSeen; max = 11; }
       else if (id === 'fly') { ok = away; done = !!g.flown && age > 2; max = 13; }
       else if (id === 'seek') { ok = away; done = !!g.auto; max = 13; }
+      else if (id === 'door') { ok = away && !g.trans; done = !!g.trans; max = 14; }
+      else if (id === 'beats') { ok = away; max = 10; }
       else if (id === 'free') ok = away;
       else if (id === 'handSeason' || id === 'handSun') { ok = atEasel; done = !g.needHand && age > 1.5; max = 11; }
       else { ok = atEasel; max = 8; }
@@ -801,7 +837,8 @@ const App = {
     if (now < this.gapUntil) return;
     const S = this.seen;
     let id = null;
-    if (!S.move && away && n === 0) id = 'move';
+    if (g.doorOn && away && !g.auto && tg && tg.kind === 'door' && now > (this.doorTold || 0) && (this.doorN || 0) < (g.wi === 0 ? 3 : 1)) { id = 'door'; this.doorN = (this.doorN || 0) + 1; this.doorTold = now + 32; this.callUntil = now + 14; }
+    else if (!S.move && away && n === 0) id = 'move';
     else if (!S.arc && atEasel && n === 0) id = 'arc';
     else if (!S.leave && atEasel && n >= 1 && !(g.restT > 0) && !g.paintE && now - this.capAt > 4 && now - this.capAt < 90) id = 'leave';
     else if (!S.album && n >= 1 && now - this.capAt > 7.2) id = 'album';
@@ -1030,8 +1067,9 @@ const App = {
     // itself when that is in sight, at the edge of the screen with a point towards it when it is not. For the third it is still
     // always there, without the distance. From the fourth on it is the plain ring it always was: only when the place is out of
     // sight, at the edge on the side where it lies. By then she knows what she is looking for
-    const mk = $('marker'), early = nc < 3, t = k < 0.05 && !this.panel && !g.free && !carded ? g.targetScreen() : null;
+    const mk = $('marker'), t = k < 0.05 && !this.panel && !g.free && !carded ? g.targetScreen() : null;
     if (!t || (t.dist < 16 && t.up < 3.5)) { mk.classList.remove('on'); this.markOn = false; return; } // (near, the place itself is plain to see: unless it stands high above her)
+    const door = t.kind === 'door', early = nc < 3 || door; // (the golden frame that leads on is always shown, whatever she has caught)
     const W = g.cssW, H = g.cssH, pad = early ? 38 : 30;
     let x = (t.nx * 0.5 + 0.5) * W, y = (1 - (t.ny * 0.5 + 0.5)) * H, rot = '';
     const off = t.behind || x < pad || x > W - pad || y < pad + 40 || y > H - 130;
@@ -1045,7 +1083,7 @@ const App = {
     }
     mk.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)'; mk.firstChild.style.transform = rot;
     const dist = Math.round(t.dist) + this.t(UI.metres); if (dist !== this.mkD) { this.mkD = dist; $('mkDist').textContent = dist; }
-    mk.classList.toggle('plain', !early); mk.classList.toggle('bare', nc === 2); mk.classList.toggle('at', !off); mk.classList.toggle('call', early && performance.now() / 1000 < (this.callUntil || 0));
+    mk.classList.toggle('plain', !early); mk.classList.toggle('bare', door ? g.wi > 0 : nc === 2); mk.classList.toggle('at', !off); mk.classList.toggle('call', early && (performance.now() / 1000 < (this.callUntil || 0) || (door && g.wi === 0)));
     mk.classList.add('on'); this.markOn = true;
   },
 
@@ -1058,7 +1096,7 @@ const App = {
       if (fresh) { this.ended = false; LS.set('ruhua.monet.fin', ''); for (const id in g.caps) { PICS.del(id); delete g.big[id]; } }
       this.finaleDue = 0;
       g.begin(fresh); track(fresh || !Object.keys(g.caps).length ? 'begin' : 'continue', { paintings: Object.keys(g.caps).length, touch: this.coarse ? 1 : 0 });
-      this.learnBegin(fresh); this.albumSeen = false; this.capWas = g.beatsCap(); // (0.9) what the parasol has now: a painting that brings more is then noticed
+      this.learnBegin(fresh); this.albumSeen = false; this.capShown = g.beatsCap(); this.mainShown = g.mainCount(); this.beatsKey = ''; // (0.9) what the row of beats shows to begin with
       // a game already complete that has not had its ending yet is given it now
       if (!g.mainLeft() && !this.ended) { this.ended = true; LS.set('ruhua.monet.fin', '1'); this.capAt = performance.now() / 1000; this.finaleDue = this.capAt + 7; }
       if (!g.trans) this.onCard(g.ch);

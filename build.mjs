@@ -13,7 +13,10 @@ const tpl = fs.readFileSync(dir + 'index.template.html', 'utf8');
 // SITE names the address the page will live at (https://example.com/): then the tags that link cards read are written with it.
 // Without it they are left out, as in the copy that runs inside Claude
 const site = process.env.SITE || '';
-const head = site ? tpl.replace(/<!--\/?SITE-->\n?/g, '').split('https://DOMAIN/').join(site.endsWith('/') ? site : site + '/') : tpl.replace(/<!--SITE-->[\s\S]*?<!--\/SITE-->\n?/, '');
+// UMAMI names the website id of the site at Umami Cloud (UMAMI_SRC its script, if not the usual one): then the page loads the
+// counter and hands it what happens in a game (track() in 01_util.js). Without it nothing is counted
+const umami = process.env.UMAMI || '', count = site && umami ? '<script defer src="' + (process.env.UMAMI_SRC || 'https://cloud.umami.is/script.js') + '" data-website-id="' + umami + '"></script>\n<script>window.itpTrack = function (n, p) { try { if (window.umami) window.umami.track(n, p); } catch (e) {} };</script>\n' : '';
+const head = site ? tpl.replace('<!--COUNT-->\n', count).replace(/<!--\/?SITE-->\n?/g, '').split('https://DOMAIN/').join(site.endsWith('/') ? site : site + '/') : tpl.replace(/<!--SITE-->[\s\S]*?<!--\/SITE-->\n?/, '');
 // ENERGY=1 builds the 0.9 line, in which the parasol has only so many beats in the air and the paintings bring more
 const energy = !!process.env.ENERGY;
 const out = head.replace('/*__SCRIPT__*/', () => "(function () {\n'use strict';\nconst ENERGY = " + energy + ';\n' + js + '\n})();');

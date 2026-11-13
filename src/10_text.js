@@ -23,10 +23,12 @@ const UI = {
   hintUp: { zh: '这幅画在高处。按住空格，阳伞会带你飞上去。', en: 'This one is up high. Hold Space and the parasol lifts you there.' },
   hintUpTouch: { zh: '这幅画在高处。按住右下方的「飞」，阳伞会带你飞上去。', en: 'This one is up high. Hold Fly at the lower right and the parasol lifts you there.' },
   metres: { zh: ' 米', en: ' m' },
-  // (0.9) the beats of the parasol
-  beatsUp: { zh: '阳伞更有力了。现在腾空一次可以振 # 下。', en: 'The parasol grows stronger. It now has # beats in the air.' },
+  // (0.9) the beats of the parasol (# how many it has now, ## with how many paintings the next comes)
+  beatsUp: { zh: '阳伞更有力了。现在腾空一次可以振 # 下。收到 ## 幅画，还会再多一下。', en: 'The parasol grows stronger. It now has # beats in the air. The next comes with ## paintings.' },
+  beatsUpLast: { zh: '阳伞更有力了。现在腾空一次可以振 # 下。收齐 25 幅，它就不会再累。', en: 'The parasol grows stronger. It now has # beats in the air. Collect all 25 and it never tires.' },
   beatsAll: { zh: '二十五幅都收齐了。阳伞不会再累，想飞多久就飞多久。', en: 'All twenty five are yours. The parasol no longer tires. Fly as long as you like.' },
-  beatsDry: { zh: '阳伞没力气了，先滑翔。落地之后力气就回来。收的画越多，它能振的次数越多。', en: 'The parasol is spent, so glide. It recovers when you land. The more paintings you collect, the more beats it has.' },
+  beatsDry: { zh: '阳伞没力气了，先滑翔，落地就恢复。收到 # 幅画，它会更有力。', en: 'The parasol is spent, so glide. It recovers when you land. It grows stronger at # paintings.' },
+  beatsNext: { zh: '下一次振伞', en: 'Next beat' }, beatsFree: { zh: '无限飞行', en: 'Endless flight' },
   hintEasel: { zh: '光正在转向他落笔的那一刻', en: 'The light is turning to the moment he painted' },
   hintSun: { zh: '也可以自己拖动下面的太阳', en: 'You can also move the sun below yourself' },
   orig: { zh: '原画', en: 'The original' }, mine: { zh: '我的画', en: 'My painting' },
@@ -73,8 +75,8 @@ const UI = {
 
 // (0.9) what is said about flying when the parasol has only so many beats
 const FLY_ENERGY = {
-  text: { zh: '按住空格，阳伞会带你飞起来。现在它每次腾空能振两下，之后靠滑翔。每多收几幅画，它就能多振一下。', en: 'Hold Space and the parasol lifts you. For now it has two beats in the air, then you glide. Collect more paintings and it gains more.' },
-  touch: { zh: '在屏幕右下方点一下是跳，按住不放，阳伞会带你飞起来。现在它每次腾空能振两下，之后靠滑翔。每多收几幅画，它就能多振一下。', en: 'At the lower right a tap is a jump. Hold, and the parasol lifts you. For now it has two beats in the air, then you glide. Collect more paintings and it gains more.' },
+  text: { zh: '按住空格，阳伞会带你飞起来。现在每次腾空只能振一下，之后靠滑翔。收到 2 幅画，就能振两下。', en: 'Hold Space and the parasol lifts you. For now it has one beat in the air, then you glide. Collect 2 paintings and it has two beats.' },
+  touch: { zh: '在屏幕右下方点一下是跳，按住不放，阳伞会带你飞起来。现在每次腾空只能振一下，之后靠滑翔。收到 2 幅画，就能振两下。', en: 'At the lower right a tap is a jump. Hold, and the parasol lifts you. For now it has one beat in the air, then you glide. Collect 2 paintings and it has two beats.' },
 };
 // things are taught one at a time, each once, at the moment it first matters: never a list at the start.
 // keys are groups of [key caps, what they do]; anchor names the thing on screen the card stands beside
@@ -88,6 +90,9 @@ const LESSONS = {
     text: { zh: '按住空格，阳伞会带你飞起来。飞着去找下一道光。在空中按住 Shift 飞得更快，并且很快降下来。', en: 'Hold Space and the parasol carries you up. Fly to the next beam of light. In the air, hold Shift to go faster and to come down quickly.' },
     touch: { zh: '在屏幕右下方点一下是跳，按住不放，阳伞会带你飞起来。飞着去找下一道光。', en: 'At the lower right of the screen a tap is a jump. Hold, and the parasol carries you up. Fly to the next beam of light.' } },
   ring: { anchor: 'marker', text: { zh: '金色的圆环指向最近的一幅画，下面的数字是距离。走到光柱里，画就开始了。', en: 'The golden ring points to the nearest painting, with how far it is. Step into the beam of light and the painting begins.' } },
+  // every painting of a world is caught: said on a card, beside the ring that now shows the golden frame (# is the name of the next place)
+  door: { anchor: 'marker', text: { zh: '这里的画都收齐了。金色的画框已经打开，跟着金色圆环走进去，就去往下一站「#」。', en: 'Every painting here is yours. A golden frame has opened. Follow the golden ring, walk into the frame, and you travel on to #.' } },
+  beats: { anchor: 'beats', text: { zh: '', en: '' } }, // (0.9) said when the parasol gains a beat: its words are made in beatsText()
   seek: { anchor: 'seek', keys: [[['G'], { zh: '寻光', en: 'seek' }]],
     text: { zh: '找不到下一幅画？按 G，她会自己走过去。再按一次就停下。', en: 'Cannot find the next painting? Press G and she walks there by herself. Press it again to stop.' },
     touch: { zh: '找不到下一幅画？点上方的「寻光」，她会自己走过去。再点一次就停下。', en: 'Cannot find the next painting? Tap Seek at the top and she walks there by herself. Tap it again to stop.' } },
