@@ -10,7 +10,7 @@
 const SCALES = { minor: [0, 2, 3, 5, 7, 8, 10], major: [0, 2, 4, 5, 7, 9, 11], dorian: [0, 2, 3, 5, 7, 9, 10], lydian: [0, 2, 4, 6, 7, 9, 11], mixo: [0, 2, 4, 5, 7, 9, 10], phrygian: [0, 1, 3, 5, 7, 8, 10] };
 const SCORES = [
   { // the coast, D lydian in four, a felt piano with the pedal down over a quiet string pad and the sea. It grows by swell and height.
-    bpm: 69, beats: 4, sub: 2, root: 50, scale: SCALES.lydian, prog: [0, 1, 5, 4, 2, 1, 4, 0], barsPer: 1, wet: 0.5, jit: 0.012, pedal: true,
+    bpm: 69, beats: 4, sub: 2, root: 50, scale: SCALES.lydian, prog: [0, 1, 5, 4, 2, 1, 4, 0], barsPer: 1, wet: 0.5, jit: 0.012, pedal: true, grand: true,
     pad: { cut: 900, gain: 0.011, lfo: true, v: [[2, 0], [4, 0], [0, 1]], v4: [6, 0], vTop: [2, 1] }, bass: null,
     arp: { voice: 'piano', oct: -1, vel: 0.05, pat: [[0, [0]], [1, [2]], [2, [3]], [3, [4]], [4, [5]], [5, [4]], [6, [3]], [7, [2]]], at0: [0, 2, 4, 6] },
     mel: { voice: 'piano', oct: 1, dens: 0.5, vel: 0.105 },

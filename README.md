@@ -26,7 +26,7 @@ Node 18 or newer. There is nothing to install.
 
 ## Credits
 
-The piano of the third world plays recorded notes from the Salamander Grand Piano V3 by Alexander Holm (a Yamaha C5),
+The piano of the first and third worlds plays recorded notes from the Salamander Grand Piano V3 by Alexander Holm (a Yamaha C5),
 used under the Creative Commons Attribution 3.0 license (https://creativecommons.org/licenses/by/3.0/). The notes in `snd/`
 were taken from the copies in the Tone.js audio repository, cut to seven seconds and converted to mono.
 
