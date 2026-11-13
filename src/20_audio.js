@@ -52,9 +52,11 @@ const SCORES = [
   { // the fields, A major in three, all struck and plucked: a felt piano sings with the pedal down, a harp rocks under it and answers at the top,
     // a plucked bass, and only a low breath of strings far behind. (It was a cello, an oboe and held strings: bowed and blown voices made here
     // sound made, not played.) It grows by warmth.
-    bpm: 66, beats: 3, sub: 2, root: 57, scale: SCALES.major, prog: [0, 5, 3, 4, 5, 3, 4, 0], barsPer: 1, wet: 0.46, jit: 0.012, pedal: true,
+    bpm: 66, beats: 3, sub: 2, root: 57, scale: SCALES.major, prog: [0, 5, 3, 4, 5, 3, 4, 0], barsPer: 1, wet: 0.5, jit: 0.012, pedal: true, grand: true,
     pad: { cut: 760, gain: 0.006, att: 1.6, rel: 1.6, v: [[0, -1], [4, -1], [2, 0]], v4: [6, 0], vTop: [4, 0] }, bass: 'pluck', bassVel: 0.045,
-    arp: { voice: 'harp', oct: -1, vel: 0.044, pat: [[0, [0]], [1, [2]], [2, [3]], [3, [4]], [4, [3]], [5, [2]]], at0: [0, 2, 4] },
+    arp: { voice: 'harp', oct: -1, vel: 0.044, pat: [[0, [0]], [1, [2]], [2, [3]], [3, [4]], [4, [3]], [5, [2]]], at0: [0, 2, 4],
+      // every other eight bars, from the third step on, the harp runs wider: up through the tenth and back
+      pat2: [[0, [0]], [1, [2]], [2, [4]], [3, [5]], [4, [4]], [5, [3]]], pat2At: 3 },
     mel: { voice: 'piano', oct: 0, dens: 0.55, vel: 0.125 },
     tune: { bars: [
       [[0, 4, 4, 0.9], [4, 2, 2, 0.8]],
@@ -66,10 +68,12 @@ const SCORES = [
       [[0, 4, 2, 0.9], [2, 3, 2, 0.8], [4, 1, 2, 0.8]],
       [[0, 0, 6, 0.85]]] },
     answer: { at: 4, voice: 'harp', oct: 1, vel: 1.0 },
-    layers: [{ at: 4, voice: 'piano', iv: 'ct', minLen: 2, vel: 0.5 }, { at: 5, voice: 'piano', oct: -1, vel: 0.6 }],
+    layers: [{ at: 3, voice: 'piano', iv: 'ct', minLen: 2, vel: 0.5 }, { at: 4, voice: 'piano', oct: 1, vel: 0.42 }, { at: 5, voice: 'piano', oct: -1, vel: 0.6 }],
     spark: null, chime: 'harp', wind: 0.03, birds: true,
     rhythms: [[0, 2, 4], [0, 3], [0, 4], [0], [2, 4], [0, 2, 3, 4]],
-    grow: { chord4: 2, bassAt: 2, bassHalf: 3, pulse: 5, top: 4, deep: 4, cut: 0.05, swell: 0.02, quick: 0.03,
+    // It grows by breadth: the left hand of the piano opens out under the tune (step 4), the tune goes into octaves, a harp sweeps up into
+    // every fourth bar, a soft drum and a cymbal mark the turn of each eight bars, and at the top the whole music lifts a fourth for eight bars in four
+    grow: { chord4: 2, bassAt: 2, bassHalf: 3, pulse: 5, top: 4, deep: 4, cut: 0.05, swell: 0.02, quick: 0.03, hand: 4, gliss: 4, drum: 5, lift: 5, lifts: [0, 0, 5, 0],
       line: { voice: 'harp', c: -4, per: [0, 0, 0, 1, 1, 1], vel: 0.032 } },
   },
   { // the pond, E dorian that never quite settles, the celesta rings like rings on water, a flute a long way off, a low string drone. It grows by shimmer and depth.
@@ -144,7 +148,7 @@ class Music {
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC && !given) return;
-      const ctx = this.ctx = given || new AC();
+      const ctx = this.ctx = given || new AC(); this.offline = !!given;
       this.master = ctx.createGain(); this.master.gain.value = this.vol * 1.5;
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -16; comp.knee.value = 18; comp.ratio.value = 3.5; comp.attack.value = 0.01; comp.release.value = 0.3;
@@ -172,6 +176,17 @@ class Music {
         }
       }
     } catch (e) { this.ctx = null; }
+  }
+  // the recorded piano: fetched once in the background, decoded, and kept (the notes are named by their place on the keyboard)
+  loadPiano(base) {
+    if (this.pnoAsked || !this.ctx || typeof fetch !== 'function' || location.protocol === 'file:') return; this.pnoAsked = true; // (a page opened from a folder may not fetch: the felt piano plays there)
+    const N = { A1: 33, Ds2: 39, A2: 45, Ds3: 51, A3: 57, Ds4: 63, A4: 69, Ds5: 75, A5: 81, Ds6: 87 }, ctx = this.ctx;
+    Promise.all(Object.keys(N).map((k) => fetch((base || 'snd/') + 'piano-' + k + '.mp3').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('no file')))).then((ab) => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej))).then((buf) => ({ midi: N[k], buf }))))
+      .then((list) => this.setPiano(list)).catch(() => { this.pnoAsked = false; /* the felt piano plays on */ });
+  }
+  setPiano(list) { // each note at the same peak, so that none stands out
+    for (const x of list) { const d = x.buf.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 3) { const v = Math.abs(d[i]); if (v > pk) pk = v; } x.k = 0.5 / Math.max(0.05, pk); }
+    this.pno = list.sort((a, b) => a.midi - b.midi);
   }
   // ----- keeping the sound alive on phones -----
   // A phone that locks its screen, takes a call or goes to another app cuts the sound off, and does not always give it back. The context may
@@ -267,6 +282,7 @@ class Music {
     const same = idx === this.idx;
     this.idx = idx; this.level = level; this.themeId = null;
     if (!this.ctx) return;
+    if (!this.offline) this.loadPiano();
     // asked twice for the world already playing (the game and the interface both ask at the start): let it go on
     if (same && this.group && this.group.score === SCORES[idx]) return;
     // a new world begins on its ground alone, whatever the last one had grown to, and grows again with her pictures (one step a bar)
@@ -427,10 +443,22 @@ class Music {
   }
   // len (optional) is how long the key is held (piano, with the pedal), or how long a held voice sounds. hi marks a note of the tune
   note(voice, t, midi, vel, len, hi) {
+    if (this.cur && this.cur.shift) midi += this.cur.shift; // (a group can lift its whole music into another key for a while)
     const ctx = this.ctx, f = mtof(midi), r = this.rnd;
     // the other modules (the living world, the folk, the chimes) were balanced against the voices before the lift: they keep their level
     if (!this.cur) vel /= Music.LIFT;
-    if (voice === 'piano') {
+    if (voice === 'piano' && this.pno && this.cur && this.cur.score.grand) {
+      // a real grand (recorded notes a tritone apart, each played a little higher or lower): the worlds that ask for it, once the notes have come
+      let S = this.pno[0]; for (const x of this.pno) if (Math.abs(x.midi - midi) < Math.abs(S.midi - midi)) S = x;
+      const rate = Math.pow(2, (midi - S.midi) / 12), nat = S.buf.duration / rate, vn = clamp(vel / 0.09, 0.25, 1.8);
+      const damp = len ? t + Math.max(0.2, len) : t + nat, end = Math.min(damp + 0.9, t + nat);
+      if (!this.claim(t, Math.min(end, t + 3.5), hi)) return;
+      const src = ctx.createBufferSource(); src.buffer = S.buf; src.playbackRate.value = rate;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.3; lp.frequency.value = Math.min(16000, f * (2.5 + 5 * vn) + 900); // struck softly it is darker
+      const e = ctx.createGain(), pk = vel * 2.3 * S.k; e.gain.setValueAtTime(pk, t); e.gain.setTargetAtTime(0, Math.max(damp, t + 0.05), 0.22);
+      src.connect(lp); lp.connect(e); e.connect(this.vout('piano', midi));
+      src.start(t); src.stop(end + 0.05);
+    } else if (voice === 'piano') {
       // a soft felt piano: a mellow body that rings on and a brighter strike that dies within a third of a second, partials a little stretched,
       // two strings a breath apart, a touch of hammer, brighter when struck harder, quicker to fade when high
       const vn = clamp(vel / 0.09, 0.25, 1.6), tau = clamp(2.6 * Math.pow(2, -(midi - 60) / 17), 0.45, 5.5);
@@ -622,7 +650,7 @@ class Music {
     const end = dur + rel + 0.1, w = this.wave('pad');
     if (P.lfo) { const l = ctx.createOscillator(); l.frequency.value = 0.13; const lg = ctx.createGain(); lg.gain.value = P.cut * 0.3; l.connect(lg); lg.connect(lp.frequency); l.start(t); l.stop(t + end); }
     const os = [];
-    for (const m of midis) { const f = mtof(m); os.push(this.osc(w, f, t, end, lp, 6), this.osc(w, f, t + 0.02, end, lp, -6)); }
+    for (const m of midis) { const f = mtof(m + (g.shift || 0)); os.push(this.osc(w, f, t, end, lp, 6), this.osc(w, f, t + 0.02, end, lp, -6)); }
     if (P.vib) this.vib(t, 4.7, 7, 0.4, 1.2, t + end, os);
   }
   // the pad's chord for one bar: its own voicing for each world, a seventh, the double basses and a high note as the world fills
@@ -779,6 +807,8 @@ class Music {
     const I = this.useInten ? Math.max(0, g.I) : clamp((night ? Math.min(this.level, 1) : this.level) - 1, 0, 3);
     const on = (k) => k !== undefined && k !== null && I >= k, half = Math.floor(spb / 2), r = this.rnd;
     const chord = s.prog[Math.floor(bar / s.barsPer) % s.prog.length], EXT = Music.EXT;
+    // a lift into another key for eight bars now and then (the last bar before it is the dominant of the new key, so it opens like a door)
+    if (st === 0 && bar % 8 === 0) g.shift = on(G.lift) && !night && G.lifts ? G.lifts[Math.floor(bar / 8) % G.lifts.length] : 0;
     if (st === 0 && bar % s.barsPer === 0) this.pad(t, this.voicing(s, G, chord, on), s.barsPer * spb * g.stepDur, I);
     // the ground: in the worlds with a bass of its own it comes in at its step, answers on the half bar, and at the top keeps every beat
     if (s.bass && on(G.bassAt || 0)) {
@@ -794,7 +824,7 @@ class Music {
       if (on(G.roll) && st === 0) {
         // a harp rolled up through the chord at the start of each bar
         for (let i = 0; i < 4; i++) this.note(A.voice, t + 0.02 + i * 0.055, this.deg(s, chord + EXT[i + 1], A.oct), A.vel * (0.75 + 0.1 * i));
-      } else for (const p of A.pat) if (p[0] === st) {
+      } else for (const p of (A.pat2 && I >= A.pat2At && Math.floor(bar / 8) % 2 === 1 ? A.pat2 : A.pat)) if (p[0] === st) {
         if (I === 0 && A.at0 && A.at0.indexOf(st) < 0) continue;
         for (let j = 0; j < p[1].length; j++) {
           const k = p[1][j], acc = s.acc ? (st % s.sub === 0 ? 1 + s.acc : 1 - s.acc * 0.6) : 1;
@@ -816,6 +846,17 @@ class Music {
         const at = (bar % 8) * spb + st;
         for (const n of g.section) if (n.at === at && n.on) this.sing(g, s, { d: n.d + 7 * ((s.mel.oct === undefined ? 1 : s.mel.oct) - 1), len: n.len, w: 0.9, arc: 1, bar: bar % 8, toBar: spb - st, last: false, dt: 0 }, t, I, chord, false, false);
       }
+    }
+    if (on(G.hand) && s.mel) { // the left hand of the piano, broad: the ground in octaves on the downbeat, the chord laid over it on the beats after
+      const lv = s.mel.vel * (I >= 5 ? 0.62 : 0.5), hold = (spb - st) * g.stepDur + 0.15;
+      if (st === 0) { this.note(s.mel.voice, t, this.deg(s, chord, -2), lv, hold); this.note(s.mel.voice, t + 0.012, this.deg(s, chord, -1), lv * 0.8, hold); }
+      else if (st % s.sub === 0) { this.note(s.mel.voice, t + 0.008, this.deg(s, chord + 2, -1), lv * 0.5, hold); this.note(s.mel.voice, t + 0.016, this.deg(s, chord + 4, -1), lv * 0.5, hold); if (I >= 5) this.note(s.mel.voice, t + 0.024, this.deg(s, chord + 7, -1), lv * 0.45, hold); }
+    }
+    if (on(G.drum) && !night) { // the turn of each eight bars: a cymbal rolled up into it and one soft stroke of the drum on its first beat
+      const b8 = bar % 8;
+      if (b8 === 7 && st === 0) this.note('cymbal', t, 60, 0.02, spb * g.stepDur);
+      if (b8 === 0 && st === 0) this.note('timpani', t, this.deg(s, chord, -2), 0.075);
+      if (b8 === 4 && st === 0) this.note('timpani', t, this.deg(s, chord, -2), 0.045);
     }
     if (this.useInten) this.lines(g, s, G, bar, st, spb, chord, t, I);
     // shimmer: a high fifth that beats slowly, held through the bar

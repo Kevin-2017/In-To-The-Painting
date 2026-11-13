@@ -24,6 +24,12 @@ Node 18 or newer. There is nothing to install.
 | film/ | storyboard and tools of the trailer (frames and films are not kept here) |
 | test/ | headless play tests, written for the development container (Chrome and Playwright) |
 
+## Credits
+
+The piano of the third world plays recorded notes from the Salamander Grand Piano V3 by Alexander Holm (a Yamaha C5),
+used under the Creative Commons Attribution 3.0 license (https://creativecommons.org/licenses/by/3.0/). The notes in `snd/`
+were taken from the copies in the Tone.js audio repository, cut to seven seconds and converted to mono.
+
 ## 中文
 
 入画 追光，走进莫奈的画里。四个世界，时间和季节是玩法，在画架前等到他落笔的那一刻的光，眼前的风景就成为你的画。

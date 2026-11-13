@@ -25,6 +25,8 @@ let n = 0;
 // (a sharper copy in orig/hi takes the place of the one in orig/final)
 if (fs.existsSync(dir + 'orig/final')) for (const f of fs.readdirSync(dir + 'orig/final')) if (f.endsWith('.jpg')) { fs.copyFileSync(dir + (fs.existsSync(dir + 'orig/hi/' + f) ? 'orig/hi/' : 'orig/final/') + f, outDir + 'img/' + f); n++; }
 console.log('copied', n, 'originals');
+// the recorded notes of the piano travel beside the page too
+if (fs.existsSync(dir + 'snd')) { fs.mkdirSync(outDir + 'snd', { recursive: true }); for (const f of fs.readdirSync(dir + 'snd')) if (f.endsWith('.mp3')) fs.copyFileSync(dir + 'snd/' + f, outDir + 'snd/' + f); }
 // a build for the web site (SITE is set) also carries the share picture, the icons and the manifest that its page names
 if (site) for (const f of ['og-en.jpg', 'og.jpg', 'favicon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'site.webmanifest']) if (fs.existsSync(dir + 'launch/' + f)) fs.copyFileSync(dir + 'launch/' + f, outDir + f);
 console.log('built', files.length, 'files,', (out.length / 1024).toFixed(1), 'KiB');
