@@ -96,7 +96,10 @@ const PACE = { c1: { rate: 0.0147, paint: 4.0, rest: 7 } };
 // that a machine grown warm, and slower for it, is eased as well
 const SAVER = [[1, 1, 17], [1, 0.82, 22], [0, 1, 1e9]];
 const BEAT_NODES = [2, 6, 10, 14, 18]; // (0.9) with so many paintings the parasol gains a beat
-const DAWN0 = 0.157; // the game begins here, in the night before that sunrise
+const DAWN0 = 0.157; // the night before that sunrise (the dawn of the first painting is paced from here on)
+// The opening, made short and never dark: the title shows the sunrise itself (TITLE0 to TITLE1), and a first game steps back from it only as far
+// as the first glow (BEGIN0), so that the first painting is caught some eight seconds after Begin
+const TITLE0 = 0.268, TITLE1 = 0.312, BEGIN0 = 0.24;
 // lamps that burn while it is dark: x, z, height above the water or the ground, colour, size
 const LAMPS = {
   coast: [[287, -74, 16, 0, 2.6], [287, -74, 4, 0, 2], [342, -56, 18, 0, 2.8], [342, -56, 4.5, 1, 2], [252, -78, 13, 0, 2.4], [384, -40, 20, 0, 2.8], [384, -40, 5, 2, 2],
@@ -285,8 +288,8 @@ class Game {
       this.mode = 'play';
       // the camera drifts back from the picture on the title to the walker, and the day begins at its beginning
       if (this.ch.title && this.ch.spots[0]) { this.lastSpot = 0; this.viewK = 1; this.spotBlock = -1; }
-      // a first game begins in the dark before the first sunrise: the sun of the title slips back under the horizon as the eye draws back
-      if (this.wi === 0 && !this.caps.c1) { this.rewind = { from: this.t, to: DAWN0, k: 0 }; this.phase = this.prevPhase = 0; }
+      // a first game begins at the first glow before that sunrise: the sun of the title slips back to the horizon as the eye draws back
+      if (this.wi === 0 && !this.caps.c1) { this.rewind = { from: this.t, to: BEGIN0, k: 0, dur: 1.6 }; this.phase = this.prevPhase = 0; }
       else if (this.ch.t0 !== undefined) this.t = Math.min(this.t, this.ch.t0 + 0.02);
       this.doorOn = !!this.ch.door && this.capCount(this.ch) >= this.ch.need;
       this.ui.onArrive(this.ch, this.wi);
@@ -341,7 +344,7 @@ class Game {
   }
   advanceTime(dt) {
     if (this.scrubbing) { this.rewind = null; return; }
-    if (this.rewind) { const r = this.rewind; r.k += dt / 2.8; this.t = lerp(r.from, r.to, ease(Math.min(1, r.k))); if (r.k >= 1) this.rewind = null; return; }
+    if (this.rewind) { const r = this.rewind; r.k += dt / (r.dur || 2.8); this.t = lerp(r.from, r.to, ease(Math.min(1, r.k))); if (r.k >= 1) this.rewind = null; return; }
     const inView = this.spot >= 0 && this.viewK > 0.9, n = this.ch.phases.length;
     if (this.reverie) { // the ending: behind the wall of her pictures the days and the seasons go by of themselves
       this.t += dt * (isNight(this.t) ? 0.4 : 1 / 30);
@@ -454,11 +457,11 @@ class Game {
     if (this.mode === 'title') {
       this.titleT += dt;
       const v = this.titleView();
-      // the title begins at night and lets the day break behind the name
-      // (the first world: a night with its lamps, then the sun comes up within some twenty seconds and stays, breathing a little)
-      const t0 = this.wi === 0 ? Math.min(v.t0, DAWN0 + 0.004) : v.t0;
-      const k = this.wi === 0 ? ease(clamp((this.titleT - 2.5) / 19, 0, 1)) - 0.1 * (0.5 - 0.5 * Math.cos(Math.max(0, this.titleT - 21.5) * 0.09)) : 0.5 - 0.5 * Math.cos(this.titleT * 0.06);
-      this.t = t0 + (v.t1 - t0) * k;
+      // The title of the first world opens on the hour of the painting, the sun just up, and lets it climb a little and breathe.
+      // (It used to begin in the night and take twenty seconds to reach the sunrise: someone who comes from a link saw a dark page first.)
+      const t0 = this.wi === 0 ? TITLE0 : v.t0, t1 = this.wi === 0 ? TITLE1 : v.t1;
+      const k = this.wi === 0 ? ease(clamp(this.titleT / 7, 0, 1)) - 0.25 * (0.5 - 0.5 * Math.cos(Math.max(0, this.titleT - 8) * 0.09)) : 0.5 - 0.5 * Math.cos(this.titleT * 0.06);
+      this.t = t0 + (t1 - t0) * k;
       this.stepPhase(dt);
       SIGHTS.update(this, dt);
     } else if (this.mode === 'trans') {

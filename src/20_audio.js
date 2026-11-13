@@ -29,25 +29,28 @@ const SCORES = [
     grow: { spark: 2, chord4: 2, low: 3, top: 5, breath: 4, swell: 0.05, cut: 0.1, quick: 0.02,
       line: { voice: 'strings', c: 5, per: [0, 0, 0, 1, 1, 2], vel: 0.017, dbl: 5, dblOct: -1 } },
   },
-  { // Argenteuil, a little boat song in G, six in a bar. The harp rocks, a French accordion sings. It grows by dance.
-    bpm: 56, beats: 2, sub: 3, root: 55, scale: SCALES.major, prog: [0, 3, 0, 4, 5, 1, 4, 0], barsPer: 1, penta: true, wet: 0.3, acc: 0.15, jit: 0.01,
-    pad: { cut: 800, gain: 0.01, v: [[0, 0], [2, 0], [4, 0]], v4: [6, 0], vTop: [4, 1] }, bass: 'pluck', bassVel: 0.05,
-    arp: { voice: 'harp', oct: -1, vel: 0.036, pat: [[0, [0]], [1, [2]], [2, [3]], [3, [4]], [4, [3]], [5, [2]]], at0: [0, 2, 3, 5] },
-    mel: { voice: 'accordion', oct: 1, dens: 0.6, vel: 0.1 },
+  { // Argenteuil, a day out by the river: G major in four at a walking pace, light on its feet. A piano skips along the tune, a harp runs in
+    // even quavers under it and answers, the bass is plucked. (It was a boat song in six with an accordion: the owner asked for the feel of
+    // an outing, and for fewer made voices.) It grows by company: thirds under the tune, then octaves, then the left hand of the piano.
+    bpm: 96, beats: 4, sub: 2, root: 55, scale: SCALES.major, prog: [0, 4, 5, 3, 0, 3, 4, 0], barsPer: 1, penta: true, wet: 0.3, acc: 0.15, jit: 0.01, grand: true,
+    pad: { cut: 760, gain: 0.005, v: [[0, 0], [2, 0], [4, 0]], v4: [6, 0], vTop: [4, 1] }, bass: 'pluck', bassVel: 0.055,
+    arp: { voice: 'harp', oct: -1, vel: 0.036, pat: [[0, [0]], [1, [2]], [2, [3]], [3, [2]], [4, [4]], [5, [2]], [6, [3]], [7, [2]]], at0: [0, 2, 4, 6] },
+    mel: { voice: 'piano', oct: 0, dens: 0.62, vel: 0.11 },
     tune: { bars: [
-      [[0, 11, 2, 0.9], [2, 9, 1, 0.7], [3, 9, 2, 0.8], [5, 10, 1, 0.7]],
-      [[0, 12, 2, 0.95], [2, 11, 1, 0.75], [3, 10, 3, 0.85]],
-      [[0, 9, 2, 0.8], [2, 11, 1, 0.75], [3, 14, 2, 0.95], [5, 13, 1, 0.75]],
-      [[0, 13, 2, 0.9], [2, 12, 1, 0.75], [3, 11, 3, 0.85]],
-      [[0, 9, 2, 0.8], [2, 11, 1, 0.75], [3, 12, 2, 0.9], [5, 14, 1, 0.8]],
-      [[0, 15, 3, 1], [3, 12, 2, 0.85], [5, 10, 1, 0.75]],
-      [[0, 13, 2, 0.9], [2, 12, 1, 0.75], [3, 11, 2, 0.85], [5, 8, 1, 0.7]],
-      [[0, 7, 6, 0.85]]] },
-    layers: [{ at: 4, voice: 'accordion', iv: -2, vel: 0.5 }, { at: 5, voice: 'accordion', oct: -1, vel: 0.42 }],
+      [[0, 9, 1, 0.9], [1, 11, 1, 0.7], [2, 12, 2, 0.9], [4, 11, 2, 0.85], [6, 9, 1, 0.7], [7, 11, 1, 0.7]],
+      [[0, 11, 2, 0.9], [2, 13, 1, 0.75], [3, 12, 1, 0.7], [4, 11, 2, 0.85], [6, 8, 2, 0.75]],
+      [[0, 12, 2, 0.9], [2, 11, 1, 0.7], [3, 9, 1, 0.75], [4, 7, 2, 0.8], [6, 9, 1, 0.7], [7, 11, 1, 0.7]],
+      [[0, 10, 2, 0.9], [2, 12, 1, 0.75], [3, 14, 1, 0.8], [4, 12, 3, 0.85], [7, 11, 1, 0.65]],
+      [[0, 9, 1, 0.9], [1, 11, 1, 0.7], [2, 14, 2, 0.95], [4, 13, 1, 0.75], [5, 12, 1, 0.75], [6, 11, 2, 0.8]],
+      [[0, 12, 2, 0.9], [2, 10, 1, 0.75], [3, 12, 1, 0.7], [4, 14, 2, 0.9], [6, 12, 2, 0.75]],
+      [[0, 11, 1, 0.85], [1, 13, 1, 0.75], [2, 15, 2, 0.95], [4, 13, 2, 0.85], [6, 11, 1, 0.7], [7, 8, 1, 0.7]],
+      [[0, 9, 2, 0.85], [2, 8, 2, 0.75], [4, 7, 4, 0.9]]] },
+    answer: { at: 3, voice: 'harp', oct: 1, vel: 1.0 },
+    layers: [{ at: 4, voice: 'piano', iv: -2, vel: 0.5 }, { at: 5, voice: 'piano', oct: -1, vel: 0.5 }],
     spark: { voice: 'harp', p: 0.06, vel: 0.024, oct: 2 }, chime: 'harp', wind: 0.016, birds: true,
-    rhythms: [[0, 3], [0, 2, 3], [0, 3, 5], [0], [3, 4, 5], [0, 2, 3, 5]],
-    grow: { spark: 2, chord4: 2, bassAt: 3, bassHalf: 3, roll: 5, top: 5, cut: 0.08, quick: 0.05,
-      line: { voice: 'strings', c: 4, per: [0, 0, 0, 0, 1, 2], vel: 0.016 } },
+    rhythms: [[0, 2, 4, 6], [0, 3, 4], [0, 4, 6], [0, 6], [2, 4], [0]],
+    grow: { spark: 2, chord4: 2, bassAt: 1, bassHalf: 2, roll: 5, top: 5, cut: 0.08, quick: 0.04, hand: 5,
+      line: { voice: 'harp', c: 4, per: [0, 0, 0, 0, 1, 2], vel: 0.028 } },
   },
   { // the fields, A major in three, all struck and plucked: a felt piano sings with the pedal down, a harp rocks under it and answers at the top,
     // a plucked bass, and only a low breath of strings far behind. (It was a cello, an oboe and held strings: bowed and blown voices made here
@@ -106,6 +109,40 @@ for (const s of SCORES) if (s.tune) { s.tune.prog = s.prog; s.tune.spb = s.beats
 // The music leans into it as the walker comes up to the easel and lets go again as she walks away.
 const R8 = [[0, 2, 4, 6], [0, 3, 4], [0, 4, 6], [0, 6], [2, 4], [0]], R6 = [[0, 3], [0, 2, 3], [0, 3, 5], [0], [3, 4, 5], [0, 2, 3, 5]], RW = [[0, 2, 4], [0, 3, 4], [0, 4], [0, 1, 2, 4], [2, 4]];
 const RUN8 = [[0, [0]], [1, [1]], [2, [2]], [3, [1]], [4, [3]], [5, [2]], [6, [1]], [7, [2]]], RUN6 = [[0, [0]], [1, [1]], [2, [2]], [3, [3]], [4, [2]], [5, [1]]], WALTZ = [[2, [1, 2]], [4, [1, 2]]];
+// Written pieces of the painters' own years, played as their composers set them down: one tune, one accompaniment, nothing added.
+// The first is entered here by hand, bar by bar: [beat, midi, beats long] for the tune (m), the chords (c, a list of notes) and the bass (b).
+// The others come from 21_pieces.js, made by tools/pieces.mjs.
+const PIECES = (() => {
+  // Erik Satie, Gymnopédie No. 1 (1888), after the public domain edition of the Mutopia Project (Evin Robertson, from the Dover reprint)
+  const T = (x, y, z) => [[0, x, 1], [1, y, 1], [2, z, 1]], H = (x, n) => [[0, x, n || 3]], A = [59, 62, 66], B = [57, 61, 66], C = (k) => [[1, k, 2]];
+  const m = [[], [], [], [], [[1, 78, 1], [2, 81, 1]], T(79, 78, 73), T(71, 73, 74), H(69), H(66, 12), [], [], [], [[1, 78, 1], [2, 81, 1]], T(79, 78, 73), T(71, 73, 74), H(69),
+    H(73), H(78), H(64, 9), [], [], T(69, 71, 72), T(76, 74, 71), T(74, 72, 71), H(74, 5), [[2, 74, 1]], T(76, 77, 79), T(81, 72, 74), T(76, 74, 71), H(74, 5), [[2, 74, 1]]];
+  const c = []; for (let i = 0; i < 16; i++) c.push(C(i % 2 ? B : A));
+  c.push(C(B), C(A), C([55, 59]), C([59, 62, 67]), C([53, 57, 62]), C([57, 60, 64]), C([55, 59, 64]), C([50, 55, 59, 64]), C([48, 52, 57, 62]), C([48, 54, 57, 62]), C([57, 60, 65]), C([57, 60, 64]), C([50, 55, 59, 64]), C([48, 52, 57, 62]), C([48, 54, 57, 62]));
+  const b = []; for (let i = 0; i < 16; i++) b.push(H(i % 2 ? 38 : 43));
+  b.push(H(42), H(35), H(40), H(40), H(38), H(33)); for (let i = 0; i < 9; i++) b.push(H(38));
+  const last = [[1, [57, 62], 1], [2, [59, 62, 67], 1]], lastB = [[0, 40, 3], [1, 47, 1], [2, 52, 1]];
+  const end1 = { m: [H(79), H(78), T(71, 69, 71), T(73, 74, 76), T(73, 74, 76), H(66), [], []], c: [C([59, 64, 67]), C(B), C(A), C([61, 64, 69]), C([57, 61, 66, 69]), last, [[0, [60, 64, 69, 72], 3]], [[0, [62, 66, 69, 74], 3]]],
+    b: [H(40), H(42), H(35), H(40), H(40), lastB, [[0, 45, 3], [0, 55, 3]], [[0, 38, 3], [0, 45, 3], [0, 50, 3]]] };
+  const end2 = { m: [H(79), H(77), T(71, 72, 77), T(76, 74, 72), T(76, 74, 72), H(65), [], []], c: [C([59, 64, 67]), C([57, 62, 65, 69]), C([57, 60, 65]), C([60, 64, 69]), C([57, 60, 65, 69]), last, [[0, [60, 64, 69, 72], 3]], [[0, [62, 65, 69, 74], 3]]],
+    b: [H(40), H(40), H(40), H(40), H(40), lastB, [[0, 45, 3], [0, 55, 3]], [[0, 38, 3], [0, 45, 3], [0, 50, 3]]] };
+  const bars = [];
+  for (const e of [end1, end2]) { for (let i = 0; i < 31; i++) bars.push({ m: m[i], c: c[i], b: b[i] }); for (let i = 0; i < 8; i++) bars.push({ m: e.m[i], c: e.c[i], b: e.b[i] }); }
+  // as a list of notes like the pieces of 21_pieces.js: [start, midi, length, loudness], in 24ths of a quarter
+  const notes = [];
+  bars.forEach((bar, i) => { const at = i * 72;
+    for (const e of bar.b) notes.push([at + e[0] * 24, e[1], Math.max(e[2], 3 - e[0]) * 24 + 12, 4]);
+    for (const e of bar.c) for (const mi of e[1]) notes.push([at + e[0] * 24, mi, e[2] * 24 + 8, 2]);
+    for (const e of bar.m) notes.push([at + e[0] * 24, e[1], e[2] * 24 + 4, 8]); });
+  return { gym1: { bpm: 72, len: bars.length * 72, notes } };
+})();
+// What each world plays, and the key it is in (for the harp that marks a catch). Take a line out and that world plays its generated score again.
+const PLAYS = [
+  ['gym1', 50, SCALES.major],        // the coast at dawn: Satie, Gymnopédie No. 1, D major
+  ['arabesque1', 52, SCALES.major],  // a day out at Argenteuil: Debussy, Première Arabesque, E major
+  ['clair', 49, SCALES.major],       // the fields of Giverny: Debussy, Clair de lune, D flat major
+  ['gym3', 57, SCALES.minor],        // the water lily pond: Satie, Gymnopédie No. 3, A minor
+];
 const THEMES = {
   // the coast
   c1: { bpm: 58, pad: { cut: 640, gain: 0.013 }, arp: { voice: 'piano', oct: -1, vel: 0.045, pat: [[0, [0]], [2, [3]], [4, [4]], [6, [3]]] }, spark: null, wind: 0.085, gulls: false },
@@ -114,11 +151,11 @@ const THEMES = {
   c4: { bpm: 60, scale: SCALES.major, prog: [0, 4, 5, 3, 0, 3, 4, 0], pad: { cut: 1000, gain: 0.013 }, arp: { voice: 'piano', oct: -1, vel: 0.045, pat: [[0, [0]], [2, [2]], [4, [4]], [6, [2]]] }, mel: { dens: 0.55 }, wind: 0.06, rhythms: R8 },
   c5: { bpm: 50, scale: SCALES.mixo, prog: [0, 6, 3, 0, 4, 6, 3, 0], pad: { cut: 1250, gain: 0.014, lfo: true }, arp: { voice: 'piano', oct: -1, vel: 0.045, pat: [[0, [0]], [3, [3]], [6, [4]]] }, mel: { dens: 0.45, fall: true }, spark: { voice: 'piano', p: 0.06, vel: 0.026, oct: 2 }, wind: 0.05, gulls: false, rhythms: R8 },
   // Argenteuil
-  a1: { bpm: 62, spark: { voice: 'harp', p: 0.1, vel: 0.026, oct: 2 } },
-  a2: { bpm: 54, root: 60, scale: SCALES.lydian, penta: false, prog: [0, 1, 0, 4, 2, 1, 0, 4], pad: { cut: 1100, gain: 0.008 }, arp: { voice: 'harp', oct: -1, vel: 0.048, pat: [[0, [0]], [2, [2]], [3, [3]], [5, [4]]] }, mel: { dens: 0.5 }, spark: { voice: 'bell', p: 0.08, vel: 0.022, oct: 3 }, wind: 0.06 },
-  a3: { bpm: 72, beats: 4, sub: 2, prog: [0, 4, 5, 3, 0, 3, 4, 0], arp: { voice: 'harp', oct: -1, vel: 0.045, pat: [[0, [0]], [2, [2]], [4, [3]], [6, [2]]] }, mel: { dens: 0.58 }, rhythms: R8 },
-  a4: { bpm: 50, root: 52, scale: SCALES.minor, penta: false, prog: [0, 5, 3, 4, 0, 5, 2, 4], pad: { cut: 760, gain: 0.011 }, arp: { voice: 'harp', oct: -1, vel: 0.046, pat: RUN6 }, mel: { dens: 0.5, fall: true }, spark: null, birds: false, wind: 0.035 },
-  a5: { bpm: 50, scale: SCALES.mixo, penta: false, prog: [0, 6, 3, 0, 4, 6, 3, 0], pad: { cut: 1000, gain: 0.011, lfo: true }, arp: { voice: 'harp', oct: -1, vel: 0.044, pat: RUN6 }, mel: { dens: 0.45 }, spark: { voice: 'harp', p: 0.06, vel: 0.024, oct: 2 } },
+  a1: { bpm: 104, spark: { voice: 'harp', p: 0.1, vel: 0.026, oct: 2 } },
+  a2: { bpm: 84, root: 60, scale: SCALES.lydian, penta: false, prog: [0, 1, 0, 4, 2, 1, 0, 4], pad: { cut: 1100, gain: 0.008 }, arp: { voice: 'harp', oct: -1, vel: 0.048, pat: [[0, [0]], [2, [2]], [3, [3]], [5, [4]]] }, mel: { dens: 0.5 }, spark: { voice: 'bell', p: 0.08, vel: 0.022, oct: 3 }, wind: 0.06 },
+  a3: { bpm: 90, beats: 4, sub: 2, prog: [0, 4, 5, 3, 0, 3, 4, 0], arp: { voice: 'harp', oct: -1, vel: 0.045, pat: [[0, [0]], [2, [2]], [4, [3]], [6, [2]]] }, mel: { dens: 0.58 }, rhythms: R8 },
+  a4: { bpm: 76, root: 52, scale: SCALES.minor, penta: false, prog: [0, 5, 3, 4, 0, 5, 2, 4], pad: { cut: 760, gain: 0.011 }, arp: { voice: 'harp', oct: -1, vel: 0.046, pat: RUN6 }, mel: { dens: 0.5, fall: true }, spark: null, birds: false, wind: 0.035 },
+  a5: { bpm: 80, scale: SCALES.mixo, penta: false, prog: [0, 6, 3, 0, 4, 6, 3, 0], pad: { cut: 1000, gain: 0.011, lfo: true }, arp: { voice: 'harp', oct: -1, vel: 0.044, pat: RUN6 }, mel: { dens: 0.45 }, spark: { voice: 'harp', p: 0.06, vel: 0.024, oct: 2 } },
   // the fields
   f1: {},
   f2: { bpm: 56, root: 54, scale: SCALES.minor, penta: false, prog: [0, 5, 3, 4, 0, 5, 2, 4], pad: { cut: 800, gain: 0.007 }, mel: { dens: 0.5, fall: true }, birds: false },
@@ -139,6 +176,7 @@ const THEMES = {
 };
 const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
+PLAYS.forEach((p, i) => { if (p && SCORES[i]) Object.assign(SCORES[i], { piece: p[0], grand: true, home: { root: p[1], scale: p[2] } }); });
 class Music {
   constructor() { this.ctx = null; this.vol = 0.75; this.group = null; this.level = 0; this.idx = -1; this.rnd = mulberry32(8811); this.muted = false; this.night = 0; this.inten = 1; this.intenWant = 1; this.useInten = false; this.old = []; this.cur = null; this.slots = new Float64Array(44); }
   ok() { return !!this.ctx; }
@@ -257,6 +295,9 @@ class Music {
     this.renews = (this.renews || 0) + 1; this.renewAt = now;
     const idx = this.idx, level = this.level;
     clearInterval(this.timer);
+    // (cut from its output first: should it wake after all, on a phone that would not close it, nothing of it is heard beside the new one)
+    try { this.master.disconnect(); this.rev.disconnect(); } catch (e) { /* gone already */ }
+    try { const q = old.suspend(); if (q && q.catch) q.catch(() => {}); } catch (e) { /* asleep already */ }
     try { const p = old.close(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* let go either way */ }
     this.ctx = null; this.group = null; this.old = []; this.cur = null; this.playList = null; this.W = null; this.rush = null; this.idx = -1; this.themeId = null;
     this.slots.fill(0); this.ran = false; this.seenS = ''; this.seenT = -1; this.seenW = now; this.asks = 0; this.kickUntil = 0;
@@ -290,7 +331,7 @@ class Music {
     if (!same) { I0 = 0; if (this.useInten) this.intenWant = 0; }
     const prev = this.group ? this.group.score : null;
     this.play(SCORES[idx], fade, I0);
-    if (prev && !same && (fade || 3) >= 4) this.bridge(prev, SCORES[idx], fade);
+    if (prev && !same && (fade || 3) >= 4 && !prev.piece && !SCORES[idx].piece) this.bridge(prev, SCORES[idx], fade);
   }
   // the world's score with a painting's theme laid over it. The pad and the melody keep what the theme does not change
   themed(base, T) {
@@ -306,6 +347,7 @@ class Music {
     this.themeId = id;
     if (!this.ctx || this.idx < 0) return;
     const base = SCORES[this.idx];
+    if (base.piece) return; // a written piece plays on as it is at an easel
     this.play(id ? this.themed(base, THEMES[id]) : base, fade || 3.2, this.group ? this.group.I : 0);
   }
   // the fade of one group, on both its outputs (the near one and the far one that goes to the reverb alone)
@@ -322,14 +364,14 @@ class Music {
     // asked again before the music last asked for has played a note (she is dithering at the edge of an easel): give it the new score in place
     const y = this.group;
     if (y && y.step === 0 && now - y.inAt < 2 && !y.score.sea === !score.sea) {
-      y.score = score; y.stepDur = 60 / score.bpm / score.sub; y.section = null; y.tAt = -1; y.send.gain.setTargetAtTime(score.wet || 0.5, now, 0.3); this.setWind();
+      y.score = score; y.stepDur = score.piece && this.pieceOf(score.piece) ? 60 / this.pieceOf(score.piece).bpm : 60 / score.bpm / score.sub; y.section = null; y.tAt = -1; y.send.gain.setTargetAtTime(score.wet || 0.5, now, 0.3); this.setWind();
       return;
     }
     if (this.group) {
       // the old music plays on while it fades, so that the two really cross
-      const old = this.group;
-      this.fadeOut(old, now, fade, false);
-      old.endAt = now + fade;
+      const old = this.group, cut = !!(old.score.piece || score.piece); // (two written pieces must not be heard together: the old one strikes no more notes and rings out)
+      this.fadeOut(old, now, cut ? Math.min(fade, 2.5) : fade, false);
+      old.endAt = cut ? now : now + fade;
       this.old.push(old);
       while (this.old.length > 2) { const o = this.old.shift(); o.endAt = Math.min(o.endAt, now); this.fadeOut(o, now, 0, true); }
     }
@@ -352,7 +394,7 @@ class Music {
       wind.connect(bp); bp.connect(sw); sw.connect(windGain);
     } else { wind.connect(bp); bp.connect(windGain); }
     windGain.connect(out); wind.start();
-    const stepDur = 60 / score.bpm / score.sub;
+    const stepDur = score.piece && this.pieceOf(score.piece) ? 60 / this.pieceOf(score.piece).bpm : 60 / score.bpm / score.sub;
     this.group = { score, out, xout, trim, send, wind, lfos, windGain, vb: {}, step: 0, next: now + Math.min(fade * 0.4, 1.5), stepDur, section: null, sectionAt: -1, tAt: -1, tNotes: null, tKind: 'none', lastMel: 9, I: I1, inAt: now, inDur: fade, lvl: 1, endAt: 1e9 };
     this.inten = this.group.I;
     this.setWind();
@@ -800,80 +842,29 @@ class Music {
       if (want !== g.I) { g.I += want > g.I ? 1 : -1; this.inten = g.I; this.level = [1, 2, 3, 4, 4, 4][g.I]; this.setWind(); g.trim.gain.setTargetAtTime(this.trimFor(g.I), t, 1.5); }
     }
     this.cur = g;
-    try { this.score1(g, s, G, spb, bar, st, step, t, night); } finally { this.cur = null; }
+    try { if (s.piece) this.pieceStep(g, s, step, t, night); else this.score1(g, s, G, spb, bar, st, step, t, night); } finally { this.cur = null; }
   }
-  score1(g, s, G, spb, bar, st, step, t, night) {
-    // what the steps mean when the old setLevel is used in place of setIntensity
-    const I = this.useInten ? Math.max(0, g.I) : clamp((night ? Math.min(this.level, 1) : this.level) - 1, 0, 3);
-    const on = (k) => k !== undefined && k !== null && I >= k, half = Math.floor(spb / 2), r = this.rnd;
-    const chord = s.prog[Math.floor(bar / s.barsPer) % s.prog.length], EXT = Music.EXT;
-    // a lift into another key for eight bars now and then (the last bar before it is the dominant of the new key, so it opens like a door)
-    if (st === 0 && bar % 8 === 0) g.shift = on(G.lift) && !night && G.lifts ? G.lifts[Math.floor(bar / 8) % G.lifts.length] : 0;
-    if (st === 0 && bar % s.barsPer === 0) this.pad(t, this.voicing(s, G, chord, on), s.barsPer * spb * g.stepDur, I);
-    // the ground: in the worlds with a bass of its own it comes in at its step, answers on the half bar, and at the top keeps every beat
-    if (s.bass && on(G.bassAt || 0)) {
-      const bo = s.bassOct === undefined ? -1 : s.bassOct, bv = s.bassVel || 0.05;
-      if (st === 0) this.note(s.bass, t, this.deg(s, chord, bo), bv);
-      if (on(G.bassHalf === undefined ? 3 : G.bassHalf) && st === half) this.note(s.bass, t, this.deg(s, chord + 4, bo), bv * 0.8);
-      if (on(G.pulse) && st !== 0 && st !== half && st % s.sub === 0) this.note(s.bass, t, this.deg(s, chord + (Math.floor(st / s.sub) % 2 ? 4 : 0), bo), bv * 0.55);
-    }
-    // on the coast the left hand reaches down an octave on the downbeat
-    if (on(G.low) && st === 0 && s.arp) this.note(s.arp.voice, t + 0.012, this.deg(s, chord, (s.arp.oct || 0) - 1), s.arp.vel * 0.55, s.pedal ? spb * g.stepDur + 0.1 : 0);
-    if (s.arp) {
-      const A = s.arp, jit = s.jit || 0.012, pedal = s.pedal && A.voice === 'piano';
-      if (on(G.roll) && st === 0) {
-        // a harp rolled up through the chord at the start of each bar
-        for (let i = 0; i < 4; i++) this.note(A.voice, t + 0.02 + i * 0.055, this.deg(s, chord + EXT[i + 1], A.oct), A.vel * (0.75 + 0.1 * i));
-      } else for (const p of (A.pat2 && I >= A.pat2At && Math.floor(bar / 8) % 2 === 1 ? A.pat2 : A.pat)) if (p[0] === st) {
-        if (I === 0 && A.at0 && A.at0.indexOf(st) < 0) continue;
-        for (let j = 0; j < p[1].length; j++) {
-          const k = p[1][j], acc = s.acc ? (st % s.sub === 0 ? 1 + s.acc : 1 - s.acc * 0.6) : 1;
-          const v = A.vel * acc * (I === 0 && this.useInten && !night ? 0.75 : 1) * (0.88 + 0.24 * r()) * (1 - 0.08 * j);
-          const m = this.deg(s, chord + EXT[k], A.oct), tt = t + (p[2] || 0) * j + (r() - 0.5) * jit;
-          this.note(A.voice, tt, m, v, pedal ? (spb - st) * g.stepDur + 0.12 : 0);
-          // on the pond each ripple comes back once, softer, like a ring on the water
-          if (A.ripple && I >= 1 && st % s.sub === 0) this.note(A.voice, tt + g.stepDur * 1.5, m, v * 0.32);
-        }
-      }
-    }
-    if (s.mel) {
-      if (s.tune && s.tune.prog === s.prog && s.tune.spb === spb) this.tuneStep(g, s, spb, bar, st, t, I, night, chord);
-      else if (I >= 1) {
-        // a painting with chords of its own: a free melody in its key, played by the world's lead
-        const sec = Math.floor(bar / 8);
-        if (!g.section || (st === 0 && bar % 8 === 0 && g.sectionAt !== sec && sec % 2 === 0)) g.section = this.makeSection(s);
-        g.sectionAt = sec;
-        const at = (bar % 8) * spb + st;
-        for (const n of g.section) if (n.at === at && n.on) this.sing(g, s, { d: n.d + 7 * ((s.mel.oct === undefined ? 1 : s.mel.oct) - 1), len: n.len, w: 0.9, arc: 1, bar: bar % 8, toBar: spb - st, last: false, dt: 0 }, t, I, chord, false, false);
-      }
-    }
-    if (on(G.hand) && s.mel) { // the left hand of the piano, broad: the ground in octaves on the downbeat, the chord laid over it on the beats after
-      const lv = s.mel.vel * (I >= 5 ? 0.62 : 0.5), hold = (spb - st) * g.stepDur + 0.15;
-      if (st === 0) { this.note(s.mel.voice, t, this.deg(s, chord, -2), lv, hold); this.note(s.mel.voice, t + 0.012, this.deg(s, chord, -1), lv * 0.8, hold); }
-      else if (st % s.sub === 0) { this.note(s.mel.voice, t + 0.008, this.deg(s, chord + 2, -1), lv * 0.5, hold); this.note(s.mel.voice, t + 0.016, this.deg(s, chord + 4, -1), lv * 0.5, hold); if (I >= 5) this.note(s.mel.voice, t + 0.024, this.deg(s, chord + 7, -1), lv * 0.45, hold); }
-    }
-    if (on(G.drum) && !night) { // the turn of each eight bars: a cymbal rolled up into it and one soft stroke of the drum on its first beat
-      const b8 = bar % 8;
-      if (b8 === 7 && st === 0) this.note('cymbal', t, 60, 0.02, spb * g.stepDur);
-      if (b8 === 0 && st === 0) this.note('timpani', t, this.deg(s, chord, -2), 0.075);
-      if (b8 === 4 && st === 0) this.note('timpani', t, this.deg(s, chord, -2), 0.045);
-    }
-    if (this.useInten) this.lines(g, s, G, bar, st, spb, chord, t, I);
-    // shimmer: a high fifth that beats slowly, held through the bar
-    if (on(G.air) && st === 0) { const len = spb * g.stepDur; this.note('air', t, this.deg(s, chord + 4, 2), 0.013, len); this.note('air', t + 0.2, this.deg(s, chord + 8, 2), 0.009, len); }
-    // at the top of the pond a harp glissando opens every fourth bar
-    if (on(G.gliss) && st === 0 && bar % 4 === 0) for (let i = 0; i < 13; i++) this.note('harp', t + 0.03 + i * 0.05, this.deg(s, chord + i, 0), 0.022 * (0.5 + 0.5 * Math.sin(Math.PI * (i + 1) / 14)));
-    if (on(G.spark === undefined ? 2 : G.spark) && s.spark && r() < s.spark.p) this.note(s.spark.voice, t + r() * g.stepDur, this.deg(s, chord + EXT[Math.floor(r() * 3)] + (r() < 0.5 ? 0 : 7), s.spark.oct || 2), s.spark.vel);
-    // surroundings
-    if (s.bell && st === 0 && bar % 8 === 4) this.toll(t);
-    if (night) { if (r() < 0.3) this.cricket(t + r() * g.stepDur); if (s.frogs && r() < 0.05) this.frog(t + r() * g.stepDur); }
-    else {
-      if (s.birds && r() < 0.035) this.bird(t + r() * g.stepDur);
-      if (s.gulls && r() < 0.014) this.gull(t + r() * g.stepDur);
-    }
+  // A written piece, a quarter note at a time. What is struck together is spread by a hair from the bottom up, as hands do
+  pieceOf(name) {
+    const C = this.pieces || (this.pieces = {}); if (C[name]) return C[name];
+    const P = PIECES[name] || (typeof PIECE_NOTES !== 'undefined' && PIECE_NOTES[name]); if (!P) return null;
+    const steps = Math.ceil(P.len / 24), by = []; for (let k = 0; k < steps; k++) by.push([]);
+    for (const n of P.notes) by[Math.min(steps - 1, Math.floor(n[0] / 24))].push(n);
+    for (const b of by) b.sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+    return (C[name] = { bpm: P.bpm, steps, by, rest: 6 }); // (rest: quarters of silence before it begins again)
+  }
+  pieceStep(g, s, step, t, night) {
+    const P = this.pieceOf(s.piece); if (!P) return;
+    const k = step % (P.steps + P.rest), d = g.stepDur, soft = night ? 0.8 : 1, r = this.rnd;
+    if (k < P.steps) { let last = -1, n = 0;
+      for (const e of P.by[k]) { n = e[0] === last ? n + 1 : 0; last = e[0];
+        this.note('piano', t + (e[0] - k * 24) / 24 * d + Math.min(0.04, n * 0.011) + (r() - 0.5) * 0.008, e[1], (0.02 + 0.0125 * e[3]) * soft * (0.95 + 0.1 * r()), e[2] / 24 * d + 0.12, 1); } }
+    // the world around it, as under the other scores
+    if (night) { if (r() < 0.3) this.cricket(t + r() * d); if (s.frogs && r() < 0.05) this.frog(t + r() * d); }
+    else { if (s.birds && r() < 0.07) this.bird(t + r() * d); if (s.gulls && r() < 0.03) this.gull(t + r() * d); }
   }
   // how long one step lasts now: at the top it quickens a little, more where the world dances
-  stepLen(g) { const q = g.score.grow && g.score.grow.quick !== undefined ? g.score.grow.quick : 0.06; return g.stepDur * (1 - q * Math.max(0, (this.useInten ? g.I : 0) - 2) / 3); }
+  stepLen(g) { if (g.score.piece) return g.stepDur; const q = g.score.grow && g.score.grow.quick !== undefined ? g.score.grow.quick : 0.06; return g.stepDur * (1 - q * Math.max(0, (this.useInten ? g.I : 0) - 2) / 3); }
   tick() {
     this.watch();
     const g = this.group;
@@ -962,11 +953,12 @@ class Music {
   // a small rising figure when a memory is gathered, on the world's own bright voice
   chime(k) {
     if (!this.ctx || !this.group) return;
-    const s = this.group.score, t = this.ctx.currentTime + 0.03, v = s.chime || 'bell', lv = v === 'bell' ? 1 : v === 'celesta' ? 0.75 : 0.6;
+    const s0 = this.group.score, s = s0.home || s0, t = this.ctx.currentTime + 0.03, v = s0.piece ? 'harp' : s0.chime || 'bell', lv = v === 'bell' ? 1 : v === 'celesta' ? 0.75 : 0.6;
     const figs = [0, 2, 4, 7, 9];
     for (let i = 0; i < figs.length; i++) this.note(v, t + i * 0.1, this.deg(s, figs[i] + (k % 3), 1), (0.12 - i * 0.012) * lv, 0.9, 1);
     this.note('glass', t + 0.5, this.deg(s, 7 + (k % 3), 0), 0.06);
     // and under the bells the strings swell once, so that a catch is felt in the music at once
+    if (s0.piece) return; // (under a written piece the harp alone marks a catch)
     try { const g = this.group, spb = s.beats * s.sub, c = s.prog[Math.floor(Math.floor(g.step / spb) / s.barsPer) % s.prog.length]; this.pad(t, [this.deg(s, c, 0), this.deg(s, c + 2, 0), this.deg(s, c + 4, 0), this.deg(s, c, 1)], 1.6); } catch (e) { /* the bells are enough */ }
   }
   door() {

@@ -22,13 +22,27 @@ Node 18 or newer. There is nothing to install.
 | orig/final, orig/hi | reproductions of the originals shown beside the player's pictures  |
 | launch/ | share picture, icons, manifest, pictures for posts |
 | film/ | storyboard and tools of the trailer (frames and films are not kept here) |
+| snd/ | recorded piano notes |
+| tools/ | makes the note lists of the written pieces from MIDI files |
 | test/ | headless play tests, written for the development container (Chrome and Playwright) |
 
 ## Credits
 
-The piano of the first and third worlds plays recorded notes from the Salamander Grand Piano V3 by Alexander Holm (a Yamaha C5),
-used under the Creative Commons Attribution 3.0 license (https://creativecommons.org/licenses/by/3.0/). The notes in `snd/`
-were taken from the copies in the Tone.js audio repository, cut to seven seconds and converted to mono.
+Each world plays a piano piece from the painter's own years, note for note.
+
+| World | Piece |
+|---|---|
+| The Normandy Coast | Erik Satie, Gymnopédie No. 1 (1888) |
+| Argenteuil | Claude Debussy, Première Arabesque (1891) |
+| The Fields of Giverny | Claude Debussy, Clair de lune (1905) |
+| The Water Lily Pond | Erik Satie, Gymnopédie No. 3 (1888) |
+
+The notes come from the public domain editions of the Mutopia Project (mutopiaproject.org), typeset by Evin Robertson (Satie) and
+Keith OHara (Debussy). `tools/pieces.mjs` turns their MIDI output into `src/21_pieces.js`.
+
+The piano is the Salamander Grand Piano V3 by Alexander Holm (a Yamaha C5), used under the Creative Commons Attribution 3.0
+license (https://creativecommons.org/licenses/by/3.0/). The notes in `snd/` were taken from the copies in the Tone.js audio
+repository, cut to seven seconds and converted to mono.
 
 ## 中文
 

@@ -82,8 +82,7 @@ const App = {
       this.bind();
       this.texts();
       this.show('title'); $('btnLang').style.display = '';
-      $('loading').classList.add('gone');
-      this.last = performance.now();
+      this.last = performance.now(); this.drawn = 0;
       const loop = (now) => {
         // a phone or a tablet is given thirty pictures a second, not sixty or more: half the work, and it stays cool in the hand
         if (g.saver && now - this.last < 29) { requestAnimationFrame(loop); return; }
@@ -210,9 +209,10 @@ const App = {
   onLeave() { this.hide('hud'); this.hide('hint'); this.closeFinale(); $('capt').classList.remove('on'); $('gain').classList.remove('say'); if (this.lesson) this.lessonEnd(6); this.closeAlbum(); this.closeHelp(); },
   onCard(ch) {
     this.cardText(ch); this.show('card');
-    this.later('card', 7800, () => this.hide('card'));
-    // for as long as the card stands (and while it fades) nothing else is said or shown: no lesson, no line of advice, no keys, no ring
-    this.cardUntil = performance.now() / 1000 + 8.7; this.hide('hint'); if (this.lesson) this.lessonEnd(1);
+    this.later('card', 4000, () => this.hide('card'));
+    // for as long as the card stands (and while it fades) nothing else is said or shown: no lesson, no line of advice, no keys, no ring.
+    // (It stood for close to nine seconds. Now four and a half, so that how to move is said within five seconds of the start)
+    this.cardUntil = performance.now() / 1000 + 4.5; this.hide('hint'); if (this.lesson) this.lessonEnd(1);
   },
   onArrive(ch) {
     track('world', { id: ch.id }); this.doorN = 0; this.doorTold = 0;
@@ -283,7 +283,7 @@ const App = {
   onCapture(e, ch, url, big) {
     if (big) PICS.put(e.id, big);
     const w = WORKS[e.id], g = this.game;
-    track('catch', { id: e.id, n: Object.keys(g.caps).length, world: ch.id });
+    track('catch', { id: e.id, n: Object.keys(g.caps).length, world: ch.id, s: Math.round(this.playT || 0) }); // (s: seconds played in this visit)
     this.caughtHere = true;
     clearTimeout(this.timers.hint0);
     this.hide('hint');
@@ -806,7 +806,7 @@ const App = {
     this.learnAt = now;
     if (!this.seen) return;
     if (this.panel || this.helpOn || this.detail || g.free || this.finaleOn) { if (this.lesson) this.lessonEnd(5); return; }
-    if (now < (this.cardUntil || 0)) { this.gapUntil = Math.max(this.gapUntil, this.cardUntil + 0.5); return; } // the card of a world is read first
+    if (now < (this.cardUntil || 0)) { this.gapUntil = Math.max(this.gapUntil, this.cardUntil + 0.2); return; } // the card of a world is read first
     const p = g.pl, n = Object.keys(g.caps).length, atEasel = g.spot >= 0 && g.viewK > 0.9, away = g.spot < 0 && g.viewK < 0.05, sp = Math.hypot(p.vx, p.vz);
     // how long she has wandered since the last catch, and how long she has stood looking
     if (n !== this.capN) { this.capN = n; this.lostT = 0; }
@@ -993,6 +993,14 @@ const App = {
   // ----- per frame: the dial, the frame, the little pictures, the ring -----
   frame() {
     const g = this.game;
+    // The painting on the loading page gives way once the world behind it has been drawn, so that it seems to come alive.
+    // (ready: how long a visitor waited for that. Counted, with the marks below, to see where the first minutes lose people)
+    if (this.drawn < 3 && ++this.drawn === 3) { $('loading').classList.add('gone'); track('ready', { s: Math.min(60, Math.round(performance.now() / 1000)), touch: this.coarse ? 1 : 0 }); }
+    { // minutes really played (the page seen, the game running): marks at half a minute, one, two, three, five, ten and twenty
+      const now = performance.now(), d = Math.min(0.25, (now - (this.playAt || now)) / 1000); this.playAt = now;
+      if (g.mode === 'play' && !document.hidden) { this.playT = (this.playT || 0) + d; const M = [30, 60, 120, 180, 300, 600, 1200], i = this.playMark || 0;
+        if (i < M.length && this.playT >= M[i]) { this.playMark = i + 1; track('played', { s: M[i], paintings: Object.keys(g.caps).length, world: g.ch ? g.ch.id : '' }); } }
+    }
     { // where a browser holds the sound back until the page is touched (at first, or after a call or another app took it), a line says so, and goes as soon as it plays
       const a = this.audio, c = a && a.ctx, now = performance.now();
       const need = !!c && (c.state !== 'running' || a.stuck) && a.vol > 0.005 && !document.hidden && !this.panel && (g.mode === 'title' || g.mode === 'play'); // (stuck: it says it plays, and its clock stands still)

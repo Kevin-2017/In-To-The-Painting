@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preload" as="image" href="img/c1.jpg">
 <title>Into the Painting</title>
 <meta name="description" content="Walk into the paintings of Claude Monet and wait for the light he painted. 入画 追光，走进莫奈的画里。">
 <meta name="theme-color" content="#1f2238">
@@ -55,7 +56,8 @@ button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 2
 .fade { opacity: 0; visibility: hidden; transition: opacity 0.9s ease, visibility 0s linear 0.9s; }
 .fade.on { opacity: 1; visibility: visible; transition: opacity 0.9s ease, visibility 0s; }
 
-#loading { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: clamp(20px, 6vw, 72px); background: var(--dusk); font-family: var(--font-meta); font-size: 14px; letter-spacing: 0.3em; color: var(--mute); transition: opacity 1.2s ease; }
+/* while the world is made the page shows the painting it opens on (Impression, Sunrise), which then gives way to the same view alive */
+#loading { position: absolute; inset: 0; display: flex; align-items: flex-end; padding: clamp(20px, 6vw, 72px); background: var(--dusk) center / cover no-repeat; background-image: linear-gradient(to top, rgba(10, 12, 24, 0.82), rgba(10, 12, 24, 0) 42%), url(img/c1.jpg); font-family: var(--font-meta); font-size: 14px; letter-spacing: 0.3em; color: #e9e4d8; text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6); transition: opacity 2s ease; }
 #loading.gone { opacity: 0; pointer-events: none; }
 
 /* title: the name low on the left, the dawn behind it */
