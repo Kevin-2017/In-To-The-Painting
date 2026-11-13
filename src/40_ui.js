@@ -128,7 +128,7 @@ const App = {
     $('tSub').textContent = this.t(UI.sub); $('tGoal').textContent = this.t(UI.goal);
     $('btnLang').innerHTML = en ? '中文 / <b>EN</b>' : '<b>中文</b> / EN';
     $('btnSeek').textContent = this.t(UI.seek); $('albLabel').textContent = this.t(UI.album);
-    $('alTitle').textContent = this.t(UI.album); $('alClose').textContent = this.t(UI.backWorld);
+    $('alTitle').textContent = this.t(UI.albumTitle); $('alClose').textContent = this.t(UI.backWorld); $('alSets').textContent = this.t(UI.toSets); $('sTitle').textContent = this.t(UI.setsTitle);
     $('soundTxt').textContent = this.t(this.coarse ? UI.soundTap : UI.soundHint);
     this.mkD = '';
     $('btnLeave').textContent = this.t(UI.leave); $('btnShareNow').textContent = this.t(UI.shareNow);
@@ -711,6 +711,18 @@ const App = {
     };
     box.appendChild(this.coarse ? col(UI.hpTouch, LEGEND.touch, () => {}) : col(UI.hpKeys, LEGEND.keys, (ic, r) => ic.appendChild(this.kbd([[r[0]]]))));
     box.appendChild(col(UI.hpSigns, LEGEND.signs, (ic, r) => { ic.innerHTML = '<svg viewBox="0 0 64 34" aria-hidden="true">' + SIGN_SVG[r[0]] + '</svg>'; }));
+    { // where the settings are: said in a sentence, with a button that goes there
+      const d = document.createElement('div'), h = document.createElement('h4'), t = document.createElement('p'), b = document.createElement('button');
+      h.textContent = this.t(UI.hpSets); t.className = 'hpnote'; t.textContent = this.t(this.coarse ? UI.hpSetsTouch : UI.hpSetsText);
+      b.type = 'button'; b.className = 'hpgo'; b.textContent = this.t(UI.hpSetsGo); b.addEventListener('click', () => this.openSettings());
+      d.append(h, t, b); box.appendChild(d);
+    }
+  },
+  // the settings stand at the foot of the album's page: this opens that page and goes down to them
+  openSettings() {
+    this.closeHelp(); if (!this.panel) this.openAlbum();
+    const go = () => { const el = $('sTitle'), al = $('album'); try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { al.scrollTop = al.scrollHeight; } };
+    requestAnimationFrame(() => requestAnimationFrame(go));
   },
   openHelp() { this.closeAlbum(); this.helpOn = true; this.panelAt = performance.now(); this.show('help'); $('help').setAttribute('aria-hidden', 'false'); $('btnHelp').classList.add('active'); $('help').scrollTop = 0; },
   closeHelp() { if (!this.helpOn) return; this.helpOn = false; this.hide('help'); $('help').setAttribute('aria-hidden', 'true'); $('btnHelp').classList.remove('active'); },
@@ -1143,6 +1155,7 @@ const App = {
     for (const b of $('segQ').children) b.addEventListener('click', () => { g.setQuality(+b.dataset.q, true); LS.set('ruhua.monet.q', String(g.quality)); });
     for (const b of $('segL').children) b.addEventListener('click', () => { this.lang = b.dataset.l; LS.set('ruhua.lang', this.lang); this.texts(); });
     $('vol').addEventListener('input', (e) => { const v = e.target.value / 100; this.audio.setVolume(v); LS.set('ruhua.vol', String(v)); });
+    $('alSets').addEventListener('click', () => this.openSettings());
     $('btnRestart').addEventListener('click', () => {
       this.closeAlbum(); this.ended = false; LS.set('ruhua.monet.fin', ''); this.finaleDue = 0;
       for (const id in g.caps) { PICS.del(id); delete g.big[id]; }

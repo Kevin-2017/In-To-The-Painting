@@ -9,7 +9,12 @@ const UI = {
   start: { zh: '开始', en: 'Begin' }, resume: { zh: '继续', en: 'Continue' }, restart: { zh: '从头开始', en: 'Start over' },
   loading: { zh: '正在调色', en: 'Mixing the colours' },
   noGL: { zh: '这台设备的浏览器不支持 WebGL2，画无法展开。请换用较新的 Chrome、Edge、Safari 或 Firefox。', en: 'This browser has no WebGL2, so the painting cannot open. Please try a recent Chrome, Edge, Safari or Firefox.' },
-  album: { zh: '画册', en: 'Album' }, seek: { zh: '寻光', en: 'Seek' }, close: { zh: '合上', en: 'Close' },
+  album: { zh: '画册', en: 'Album' },
+  // the page behind the album button holds the settings too, at its foot: its heading says so, a button in the heading goes there, and the guide tells where they are
+  albumTitle: { zh: '画册与设置', en: 'Album & Settings' }, toSets: { zh: '设置 ↓', en: 'Settings ↓' }, setsTitle: { zh: '设置', en: 'Settings' },
+  hpSets: { zh: '设置', en: 'Settings' }, hpSetsGo: { zh: '打开设置', en: 'Open settings' },
+  hpSetsText: { zh: '画质、音量和语言在「画册与设置」页面的最下面。按 J 打开，或者点右上角的画册。', en: 'Quality, volume and language are at the foot of the Album & Settings page. Press J to open it, or click Album at the top right.' },
+  hpSetsTouch: { zh: '画质、音量和语言在「画册与设置」页面的最下面。点上方的画册打开。', en: 'Quality, volume and language are at the foot of the Album & Settings page. Tap Album at the top to open it.' }, seek: { zh: '寻光', en: 'Seek' }, close: { zh: '合上', en: 'Close' },
   go: { zh: '前往', en: 'Go there' }, here: { zh: '此刻在这里', en: 'You are here' }, locked: { zh: '还未到达', en: 'Not reached yet' },
   quality: { zh: '画质', en: 'Quality' }, qHigh: { zh: '精细', en: 'Fine' }, qMid: { zh: '适中', en: 'Medium' }, qLow: { zh: '流畅', en: 'Fast' },
   volume: { zh: '音量', en: 'Volume' }, language: { zh: '语言', en: 'Language' },

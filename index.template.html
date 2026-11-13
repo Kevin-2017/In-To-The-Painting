@@ -304,6 +304,13 @@ kbd { display: inline-flex; align-items: center; justify-content: center; min-wi
 #album .x { font-family: var(--font-meta); font-size: 13px; letter-spacing: 0.2em; }
 #album .show { margin-left: auto; font-family: var(--font-meta); font-size: 12.5px; letter-spacing: 0.2em; padding: 7px 16px; border: 1px solid var(--sun); border-radius: 999px; color: var(--sun); }
 #album .show:hover { background: var(--sun); color: var(--dusk); }
+#album .tosets { font-family: var(--font-meta); font-size: 12.5px; letter-spacing: 0.2em; padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--light); }
+#album .tosets:hover { border-color: var(--sun); color: var(--sun); }
+.sethead { margin: 26px 0 0; padding-bottom: 9px; font-size: 15px; font-weight: 600; letter-spacing: 0.3em; scroll-margin-top: 24px; }
+.sethead + .set { padding-top: 16px; }
+.hpnote { margin: 12px 0 14px; font-family: var(--font-meta); font-size: 13.5px; line-height: 1.8; letter-spacing: 0.05em; color: var(--mute); }
+.hpgo { font-family: var(--font-meta); font-size: 12.5px; letter-spacing: 0.2em; padding: 7px 16px; border: 1px solid var(--sun); border-radius: 999px; color: var(--sun); }
+.hpgo:hover { background: var(--sun); color: var(--dusk); }
 #album .show[hidden] { display: none; }
 .pic.hid .im { position: relative; }
 .pic.hid.none .im { border-color: rgba(255, 198, 92, 0.55); display: flex; align-items: center; justify-content: center; font-family: var(--font-latin); font-style: italic; font-size: 30px; color: rgba(255, 198, 92, 0.7); }
@@ -465,9 +472,10 @@ input[type="range"] { width: 100%; accent-color: var(--sun); }
   <div id="soundHint" class="fade shade" role="status"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.6v4.8h3.4L12 18V6L7.4 9.6H4z"/><path d="M15.4 9a4.3 4.3 0 0 1 0 6M17.9 6.6a7.7 7.7 0 0 1 0 10.8" fill="none"/></svg><span id="soundTxt"></span></div>
 
   <section id="album" aria-hidden="true">
-    <header><button class="x" id="alClose" type="button"></button><h3 id="alTitle"></h3><button class="show" id="alShow" type="button" hidden></button></header>
+    <header><button class="x" id="alClose" type="button"></button><h3 id="alTitle"></h3><button class="tosets" id="alSets" type="button"></button><button class="show" id="alShow" type="button" hidden></button></header>
     <div id="alBody"></div>
     <p class="credit" id="alCredit"></p>
+    <h4 class="sethead" id="sTitle"></h4>
     <div class="set">
       <label id="sQ" for="q2"></label><div class="seg" id="segQ"><button type="button" id="q2" data-q="2"></button><button type="button" id="q1" data-q="1"></button><button type="button" id="q0" data-q="0"></button></div>
       <label id="sV" for="vol"></label><input type="range" id="vol" min="0" max="100" value="75">
