@@ -28,7 +28,9 @@ Node 18 or newer. There is nothing to install.
 
 ## Credits
 
-Each world plays a piano piece from the painter's own years, note for note.
+Each world plays a piano piece from the painter's own years, arranged for the game: it begins as a sketch of tune and bass,
+fills in to the piece as written with the first painting caught there, and broadens with the rest. It is phrased as a pianist
+would play it rather than in strict time.
 
 | World | Piece |
 |---|---|
@@ -42,7 +44,7 @@ Keith OHara (Debussy). `tools/pieces.mjs` turns their MIDI output into `src/21_p
 
 The piano is the Salamander Grand Piano V3 by Alexander Holm (a Yamaha C5), used under the Creative Commons Attribution 3.0
 license (https://creativecommons.org/licenses/by/3.0/). The notes in `snd/` were taken from the copies in the Tone.js audio
-repository, cut to seven seconds and converted to mono.
+repository (twenty four notes a minor third apart), cut to between four and eight seconds and converted to mono.
 
 ## 中文
 

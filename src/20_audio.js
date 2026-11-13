@@ -128,13 +128,13 @@ const PIECES = (() => {
     b: [H(40), H(40), H(40), H(40), H(40), lastB, [[0, 45, 3], [0, 55, 3]], [[0, 38, 3], [0, 45, 3], [0, 50, 3]]] };
   const bars = [];
   for (const e of [end1, end2]) { for (let i = 0; i < 31; i++) bars.push({ m: m[i], c: c[i], b: b[i] }); for (let i = 0; i < 8; i++) bars.push({ m: e.m[i], c: e.c[i], b: e.b[i] }); }
-  // as a list of notes like the pieces of 21_pieces.js: [start, midi, length, loudness], in 24ths of a quarter
+  // as a list of notes like the pieces of 21_pieces.js: [start, midi, length, loudness, part], in 24ths of a quarter (part 0 the tune, 1 the bass, 2 between)
   const notes = [];
   bars.forEach((bar, i) => { const at = i * 72;
-    for (const e of bar.b) notes.push([at + e[0] * 24, e[1], Math.max(e[2], 3 - e[0]) * 24 + 12, 4]);
-    for (const e of bar.c) for (const mi of e[1]) notes.push([at + e[0] * 24, mi, e[2] * 24 + 8, 2]);
-    for (const e of bar.m) notes.push([at + e[0] * 24, e[1], e[2] * 24 + 4, 8]); });
-  return { gym1: { bpm: 72, len: bars.length * 72, notes } };
+    for (const e of bar.b) notes.push([at + e[0] * 24, e[1], Math.max(e[2], 3 - e[0]) * 24 + 12, 4, 1]);
+    for (const e of bar.c) for (const mi of e[1]) notes.push([at + e[0] * 24, mi, e[2] * 24 + 8, 2, 2]);
+    for (const e of bar.m) notes.push([at + e[0] * 24, e[1], e[2] * 24 + 4, 8, 0]); });
+  return { gym1: { bpm: 72, bar: 3, phrase: 4, len: bars.length * 72, notes } };
 })();
 // What each world plays, and the key it is in (for the harp that marks a catch). Take a line out and that world plays its generated score again.
 const PLAYS = [
@@ -215,15 +215,22 @@ class Music {
       }
     } catch (e) { this.ctx = null; }
   }
-  // the recorded piano: fetched once in the background, decoded, and kept (the notes are named by their place on the keyboard)
+  // The recorded piano: twenty four notes a minor third apart, fetched in the background as soon as there is a context, decoded and kept.
+  // A written piece waits for them (pnoWait) rather than begin on the made piano and change its voice a few bars in. It waits eight
+  // seconds at most, and not at all where the notes cannot be fetched
   loadPiano(base) {
     if (this.pnoAsked || !this.ctx || typeof fetch !== 'function' || location.protocol === 'file:') return; this.pnoAsked = true; // (a page opened from a folder may not fetch: the felt piano plays there)
-    const N = { A1: 33, Ds2: 39, A2: 45, Ds3: 51, A3: 57, Ds4: 63, A4: 69, Ds5: 75, A5: 81, Ds6: 87 }, ctx = this.ctx;
-    Promise.all(Object.keys(N).map((k) => fetch((base || 'snd/') + 'piano-' + k + '.mp3').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('no file')))).then((ab) => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej))).then((buf) => ({ midi: N[k], buf }))))
-      .then((list) => this.setPiano(list)).catch(() => { this.pnoAsked = false; /* the felt piano plays on */ });
+    const N = { Ds1: 27, Fs1: 30, A1: 33, C2: 36, Ds2: 39, Fs2: 42, A2: 45, C3: 48, Ds3: 51, Fs3: 54, A3: 57, C4: 60, Ds4: 63, Fs4: 66, A4: 69, C5: 72, Ds5: 75, Fs5: 78, A5: 81, C6: 84, Ds6: 87, Fs6: 90, A6: 93, C7: 96 };
+    const ctx = this.ctx, got = [], keys = Object.keys(N); let left = keys.length;
+    this.pnoWait = true; setTimeout(() => { this.pnoWait = false; }, 8000);
+    const done = () => { if (got.length >= 12) this.setPiano(got.slice()); if (--left <= 0) this.pnoWait = false; else if (this.pno && this.pno.length >= 16) this.pnoWait = false; };
+    // the middle of the keyboard first: it is what every piece begins with
+    keys.sort((a, b) => Math.abs(N[a] - 60) - Math.abs(N[b] - 60));
+    for (const k of keys) fetch((base || 'snd/') + 'piano-' + k + '.mp3').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('no file'))))
+      .then((ab) => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej))).then((buf) => { got.push({ midi: N[k], buf }); done(); }, () => done());
   }
   setPiano(list) { // each note at the same peak, so that none stands out
-    for (const x of list) { const d = x.buf.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 3) { const v = Math.abs(d[i]); if (v > pk) pk = v; } x.k = 0.5 / Math.max(0.05, pk); }
+    for (const x of list) if (!x.k) { const d = x.buf.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i += 3) { const v = Math.abs(d[i]); if (v > pk) pk = v; } x.k = 0.5 / Math.max(0.05, pk); }
     this.pno = list.sort((a, b) => a.midi - b.midi);
   }
   // ----- keeping the sound alive on phones -----
@@ -379,7 +386,7 @@ class Music {
     for (const p of [out.gain, xout.gain]) { p.setValueAtTime(0.0001, now); try { p.setValueCurveAtTime(this.cUp, now + 0.005, fade); } catch (e) { p.linearRampToValueAtTime(1, now + fade); } }
     // trim keeps the fullest steps from pressing on the master: the growth is in the voices, not in sheer level
     const trim = ctx.createGain(), I1 = Math.max(0, I0 || 0); trim.gain.value = this.trimFor(I1);
-    const send = ctx.createGain(); send.gain.value = score.wet || 0.5;
+    const send = ctx.createGain(); send.gain.value = score.piece ? 0.3 : score.wet || 0.5; // (a piano in a room, not in a hall)
     out.connect(trim); trim.connect(this.master); trim.connect(send); send.connect(this.rev); xout.connect(this.rev);
     // wind bed (and on the coast the slow breath of the sea in it)
     const wind = ctx.createBufferSource(); wind.buffer = this.noise; wind.loop = true;
@@ -496,7 +503,7 @@ class Music {
       const damp = len ? t + Math.max(0.2, len) : t + nat, end = Math.min(damp + 0.9, t + nat);
       if (!this.claim(t, Math.min(end, t + 3.5), hi)) return;
       const src = ctx.createBufferSource(); src.buffer = S.buf; src.playbackRate.value = rate;
-      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.3; lp.frequency.value = Math.min(16000, f * (2.5 + 5 * vn) + 900); // struck softly it is darker
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.3; lp.frequency.value = Math.min(17000, f * (4 + 9 * vn) + 1600); // struck softly it is a little darker
       const e = ctx.createGain(), pk = vel * 2.3 * S.k; e.gain.setValueAtTime(pk, t); e.gain.setTargetAtTime(0, Math.max(damp, t + 0.05), 0.22);
       src.connect(lp); lp.connect(e); e.connect(this.vout('piano', midi));
       src.start(t); src.stop(end + 0.05);
@@ -844,33 +851,61 @@ class Music {
     this.cur = g;
     try { if (s.piece) this.pieceStep(g, s, step, t, night); else this.score1(g, s, G, spb, bar, st, step, t, night); } finally { this.cur = null; }
   }
-  // A written piece, a quarter note at a time. What is struck together is spread by a hair from the bottom up, as hands do
+  // ----- the written pieces, arranged for the game -----
+  // A piece is played a quarter note at a time, and as a pianist would rather than as written: each phrase moves on a little and holds back
+  // at its end, swells and falls, the tune sings over the rest, what is struck together is spread by a hair from the bottom up.
+  // And it grows with her paintings in this world (the step of intensity, 0 to 5):
+  //   0  a sketch in two voices: the tune and the bass
+  //   1  the harmony between them comes in: the piece as it was written, softly
+  //   2  at its full weight
+  //   3  the bass an octave deeper under itself
+  //   4  the tune an octave higher over itself, very softly, where it holds
+  //   5  both a little stronger, in a wider room
   pieceOf(name) {
     const C = this.pieces || (this.pieces = {}); if (C[name]) return C[name];
     const P = PIECES[name] || (typeof PIECE_NOTES !== 'undefined' && PIECE_NOTES[name]); if (!P) return null;
     const steps = Math.ceil(P.len / 24), by = []; for (let k = 0; k < steps; k++) by.push([]);
     for (const n of P.notes) by[Math.min(steps - 1, Math.floor(n[0] / 24))].push(n);
     for (const b of by) b.sort((x, y) => x[0] - y[0] || x[1] - y[1]);
-    return (C[name] = { bpm: P.bpm, steps, by, rest: 6 }); // (rest: quarters of silence before it begins again)
+    // the breath of each phrase: how long every quarter lasts (1 is the plain tempo) and how strongly it is played
+    const L = Math.max(2, Math.round(P.bar * P.phrase)), pace = [], swell = [];
+    for (let k = 0; k < steps; k++) { const pos = (k % L) / L, end = Math.max(0, (k - (steps - 2 * P.bar)) / (2 * P.bar));
+      pace.push((1 - 0.035 * Math.sin(Math.PI * pos) + (pos > 0.78 ? 0.11 * Math.pow((pos - 0.78) / 0.22, 2) : 0)) * (1 + 0.4 * end * end));
+      swell.push(0.88 + 0.2 * Math.sin(Math.PI * Math.min(1, pos * 1.15))); }
+    return (C[name] = { bpm: P.bpm, steps, by, pace, swell, rest: 6 }); // (rest: quarters of silence before it begins again)
   }
   pieceStep(g, s, step, t, night) {
     const P = this.pieceOf(s.piece); if (!P) return;
-    const k = step % (P.steps + P.rest), d = g.stepDur, soft = night ? 0.8 : 1, r = this.rnd;
-    if (k < P.steps) { let last = -1, n = 0;
-      for (const e of P.by[k]) { n = e[0] === last ? n + 1 : 0; last = e[0];
-        this.note('piano', t + (e[0] - k * 24) / 24 * d + Math.min(0.04, n * 0.011) + (r() - 0.5) * 0.008, e[1], (0.02 + 0.0125 * e[3]) * soft * (0.95 + 0.1 * r()), e[2] / 24 * d + 0.12, 1); } }
+    const k = step % (P.steps + P.rest), r = this.rnd, I = this.useInten ? g.I : 2;
+    const d = g.stepDur * (k < P.steps ? P.pace[k] : 1), soft = (night ? 0.8 : 1) * (0.9 + 0.035 * I);
+    if (k < P.steps) { let last = -1, n = 0; const sw = P.swell[k];
+      for (const e of P.by[k]) {
+        const part = e[4];
+        if (part === 2 && I < 1) continue; // (the sketch has no inner voices)
+        n = e[0] === last ? n + 1 : 0; last = e[0];
+        const at = t + (e[0] - k * 24) / 24 * d + Math.min(0.045, n * 0.012) + (r() - 0.5) * 0.012, len = e[2] / 24 * d + 0.12;
+        // the tune swells with its phrase and sings out the more the higher it climbs; the rest breathes with it, less
+        let v = (0.02 + 0.0125 * e[3]) * soft * (0.93 + 0.14 * r());
+        v *= part === 0 ? sw * (1 + clamp((e[1] - 72) * 0.008, -0.1, 0.14)) : 0.5 + 0.5 * sw;
+        if (part === 2 && I === 1) v *= 0.72;
+        this.note('piano', at, e[1], v, len, 1);
+        if (part === 1 && I >= 3 && e[1] - 12 >= 24) this.note('piano', at - 0.004, e[1] - 12, v * (I >= 5 ? 0.7 : 0.55), len, 1);
+        if (part === 0 && I >= 4 && e[2] >= 20 && e[1] + 12 <= 98) this.note('piano', at + 0.01, e[1] + 12, v * (I >= 5 ? 0.42 : 0.32), len, 1);
+      } }
     // the world around it, as under the other scores
     if (night) { if (r() < 0.3) this.cricket(t + r() * d); if (s.frogs && r() < 0.05) this.frog(t + r() * d); }
     else { if (s.birds && r() < 0.07) this.bird(t + r() * d); if (s.gulls && r() < 0.03) this.gull(t + r() * d); }
   }
   // how long one step lasts now: at the top it quickens a little, more where the world dances
-  stepLen(g) { if (g.score.piece) return g.stepDur; const q = g.score.grow && g.score.grow.quick !== undefined ? g.score.grow.quick : 0.06; return g.stepDur * (1 - q * Math.max(0, (this.useInten ? g.I : 0) - 2) / 3); }
+  // (for a written piece it is asked after the step has been counted on: the length of the one just played)
+  stepLen(g) { if (g.score.piece) { const P = this.pieceOf(g.score.piece), k = P ? Math.max(0, g.step - 1) % (P.steps + P.rest) : 0; return g.stepDur * (P && k < P.steps ? P.pace[k] : 1); } const q = g.score.grow && g.score.grow.quick !== undefined ? g.score.grow.quick : 0.06; return g.stepDur * (1 - q * Math.max(0, (this.useInten ? g.I : 0) - 2) / 3); }
   tick() {
     this.watch();
     const g = this.group;
     if (!g || !this.ctx || this.ctx.state !== 'running') return;
     const now = this.ctx.currentTime;
     for (const o of this.groupsToPlay(now)) {
+      if (o.score.piece && this.pnoWait) { o.next = now + 0.15; continue; } // (the notes of the piano are still on their way)
       if (o.next < now - 0.5) o.next = now + 0.05;
       let n = 0;
       while (o.next < now + 0.4 && o.next < o.endAt - 0.4 && n++ < 16) { try { this.schedule(o, o.step, o.next); } catch (e) { /* keep time even if a voice fails */ } o.step++; o.next += this.stepLen(o); }
