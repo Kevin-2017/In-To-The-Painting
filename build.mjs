@@ -14,8 +14,9 @@ const tpl = fs.readFileSync(dir + 'index.template.html', 'utf8');
 // Without it they are left out, as in the copy that runs inside Claude
 const site = process.env.SITE || '';
 // UMAMI names the website id of the site at Umami Cloud (UMAMI_SRC its script, if not the usual one): then the page loads the
-// counter and hands it what happens in a game (track() in 01_util.js). Without it nothing is counted
-const umami = process.env.UMAMI || '', count = site && umami ? '<script defer src="' + (process.env.UMAMI_SRC || 'https://cloud.umami.is/script.js') + '" data-website-id="' + umami + '"></script>\n<script>window.itpTrack = function (n, p) { try { if (window.umami) window.umami.track(n, p); } catch (e) {} };</script>\n' : '';
+// counter and hands it what happens in a game (track() in 01_util.js). Without it nothing is counted. The id is not kept in
+// the repository: it comes from the environment (on Cloudflare Pages: a variable of the project) or from a file .umami beside this one
+const umami = process.env.UMAMI || (fs.existsSync(dir + '.umami') ? fs.readFileSync(dir + '.umami', 'utf8').trim() : ''), count = site && umami ? '<script defer src="' + (process.env.UMAMI_SRC || 'https://cloud.umami.is/script.js') + '" data-website-id="' + umami + '"></script>\n<script>window.itpTrack = function (n, p) { try { if (window.umami) window.umami.track(n, p); } catch (e) {} };</script>\n' : '';
 const head = site ? tpl.replace('<!--COUNT-->\n', count).replace(/<!--\/?SITE-->\n?/g, '').split('https://DOMAIN/').join(site.endsWith('/') ? site : site + '/') : tpl.replace(/<!--SITE-->[\s\S]*?<!--\/SITE-->\n?/, '');
 // ENERGY=1 builds the 0.9 line, in which the parasol has only so many beats in the air and the paintings bring more
 const energy = !!process.env.ENERGY;

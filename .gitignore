@@ -32,3 +32,9 @@ node_modules/
 # briefs written for helper agents during development
 /AGENT*.md
 /FILM.md
+
+# kept out of the public repository: the id of the visitor counter, and the working documents of the development sessions
+/.umami
+/NOTES.md
+/DESIGN.md
+/launch/上线指南.md

@@ -223,7 +223,7 @@ const App = {
   },
   onAuto(on) { $('btnSeek').classList.toggle('active', !!on); if (on) track('seek', {}); if (on && this.seen && !this.seen.sought) { this.seen.sought = 1; LS.set('ruhua.monet.learn', JSON.stringify(this.seen)); } }, // (she has used Seek: she need not be told of it again)
   // (0.9) the parasol is spent in the air: the row of beats shakes, its line shows, and the first time it is said what that means
-  onDry() { const b = $('beats'); b.classList.remove('dry'); void b.offsetWidth; b.classList.add('dry'); this.beatsSayUntil = performance.now() / 1000 + 6; this.hint('beatsDry', 9, true, this.beatNode(this.game.mainCount())); },
+  onDry() { const b = $('beats'); b.classList.remove('dry'); void b.offsetWidth; b.classList.add('dry'); this.beatsSayUntil = performance.now() / 1000 + 3; this.hint('beatsDry', 7, true, this.beatNode(this.game.mainCount())); },
   beatNode(main) { for (const x of BEAT_NODES) if (x > main) return x; return 25; }, // with how many paintings the next beat comes (after the last node: all of them)
   // (0.9) The row of beats: a mark for each beat the parasol has (the spent ones hollow), then one dashed mark for the beat still
   // to be earned; over them, for a few seconds after a catch or when it is spent, how far she is from that beat (1 / 2).
@@ -250,13 +250,13 @@ const App = {
     const g = this.game, main = g.mainCount(), cap = g.beatsCap(), now = performance.now() / 1000;
     if (cap === Infinity) { this.capShown = cap; this.mainShown = main; return; }
     if (main === this.mainShown && cap === this.capShown) return;
-    this.beatsSayUntil = now + 10;
+    this.beatsSayUntil = now + 4.6; // (the line over the row shows only for the flight of the spark and some two seconds after: the land is left to be looked at)
     this.later('spark', 700, () => {
       const land = () => {
         const up = cap > (this.capShown === undefined ? cap : this.capShown);
         this.mainShown = main; this.capShown = cap; this.beatsKey = ''; this.beatsRow();
         const b = $('beats'); b.classList.remove('tick'); void b.offsetWidth; b.classList.add('tick');
-        if (up) { const pp = $('btPips'), el = pp.children[cap - 1]; if (el) el.classList.add('new'); if (this.lesson) this.lessonEnd(0.5); this.beatsSayUntil = performance.now() / 1000 + 12; this.lessonShow('beats'); }
+        if (up) { const pp = $('btPips'), el = pp.children[cap - 1]; if (el) el.classList.add('new'); if (this.lesson) this.lessonEnd(0.5); this.beatsSayUntil = performance.now() / 1000 + 3; this.lessonShow('beats'); }
       };
       const from = $('btnAlbum').getBoundingClientRect(), to = $('btPips').getBoundingClientRect(), app = $('app').getBoundingClientRect(), sp = document.createElement('span');
       if (!sp.animate || to.width < 2 || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) { land(); return; }
@@ -826,7 +826,7 @@ const App = {
       else if (id === 'fly') { ok = away; done = !!g.flown && age > 2; max = 13; }
       else if (id === 'seek') { ok = away; done = !!g.auto; max = 13; }
       else if (id === 'door') { ok = away && !g.trans; done = !!g.trans; max = 14; }
-      else if (id === 'beats') { ok = away; max = 10; }
+      else if (id === 'beats') { ok = away; max = 6; }
       else if (id === 'free') ok = away;
       else if (id === 'handSeason' || id === 'handSun') { ok = atEasel; done = !g.needHand && age > 1.5; max = 11; }
       else { ok = atEasel; max = 8; }

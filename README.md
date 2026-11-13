@@ -28,12 +28,16 @@ Cloudflare Pages is connected to this repository. Every push to `main` runs `npm
 | Path | What it holds |
 |---|---|
 | src/ | the game, joined in file name order into index.template.html by build.mjs |
-| orig/final, orig/hi | reproductions of the originals shown beside the player's pictures (sources in DESIGN.md) |
-| launch/ | share picture, icons, manifest, pictures for posts, the launch guide |
+| orig/final, orig/hi | reproductions of the originals shown beside the player's pictures  |
+| launch/ | share picture, icons, manifest, pictures for posts |
 | film/ | storyboard and tools of the trailer (frames and films are not kept here) |
 | test/ | headless play tests, written for the development container (Chrome and Playwright) |
-| DESIGN.md | design document, in Chinese |
-| NOTES.md | working notes of the development sessions |
+
+## Counting visitors
+
+The site build can load the Umami counter and hand it what happens in a game (begin, catch, world, finished, share, seek).
+Give the build the website id in the variable `UMAMI` (on Cloudflare Pages: Settings, Variables and Secrets), or put it in a
+file `.umami` beside `build.mjs`. The id is not kept in this repository. Without it nothing is counted.
 
 ## 中文
 
