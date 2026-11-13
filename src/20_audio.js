@@ -227,7 +227,8 @@ class Music {
     if (!c || c.state === 'closed' || now < (this.kickUntil || 0)) return;
     this.kickAt = now; this.kickUntil = now + 250; this.kicks = (this.kicks || 0) + 1;
     try { const p = c.suspend(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* woken all the same */ }
-    setTimeout(() => { if (this.ctx !== c) return; this.kickUntil = 0; this.seenW = performance.now(); this.wake(); }, 230);
+    // (woken whatever it says by then: a context in that state may never own up to having slept)
+    setTimeout(() => { if (this.ctx !== c) return; this.kickUntil = 0; this.seenW = performance.now(); try { const p = c.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* the watch asks again */ } }, 230);
   }
   // A context that nothing wakes is left behind and a new one made in its place. Called from inside a touch, where a phone lets a context begin.
   // The music takes up the world it was in. The game brings back the painting's air, the night and the step, as it does every frame
