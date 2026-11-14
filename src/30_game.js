@@ -573,7 +573,7 @@ class Game {
     }
     const waterY = W.waterY, hh = (x, z) => { const h = W.h(clamp(x, -790, 790), clamp(z, -790, 790)); return waterY !== null && h < waterY ? waterY : h; };
     const base0 = hh(p.x, p.z), onWater = waterY !== null && gy0 <= waterY + 0.001, snowy = !!(this.envNow && this.envNow.snow > 0.5);
-    let sK = 0;
+    let sK = 0, drive = 0, against = 0, ice = 0;
     if (!inAir) {
       // on the ground: walking has grip. Water and snow are for skating, a slope carries her down it, and a landing at speed runs on into a slide
       const flat = gy0 > base0 + 0.05; // on a deck
@@ -583,9 +583,11 @@ class Game {
       let dSpot = 1e9; for (const sp of this.ch.spots) dSpot = Math.min(dSpot, Math.hypot(sp.x - p.x, sp.z - p.z));
       sK = Math.max(onWater || snowy ? 1 : 0, clamp((grade - 0.1) / 0.14, 0, 1) * down, clamp((grade - 0.55) / 0.25, 0, 1), clamp(this.slideT / 0.5, 0, 1));
       sK *= clamp((dSpot - 3.5) / 4, 0, 1); // the ground holds her by an easel
+      ice = (onWater || snowy ? 1 : 0) * clamp((dSpot - 3.5) / 4, 0, 1); // water and snow: there she skates and never walks
       const fx = Math.sin(fwdYaw), fz = -Math.cos(fwdYaw), rx = Math.cos(fwdYaw), rz = Math.sin(fwdYaw);
       const ix = fx * mz + rx * mx, iz = fz * mz + rz * mx, top = shift ? 9 : 5.4;
-      const against = hs0 > 1 && l > 0.1 ? Math.max(0, -(ix * p.vx + iz * p.vz) / (hs0 * l)) : 0; // leaning back against the slide is a brake
+      against = hs0 > 1 && l > 0.1 ? Math.max(0, -(ix * p.vx + iz * p.vz) / (hs0 * l)) : 0; // leaning back against the slide is a brake
+      drive = l > 0.05 ? (hs0 > 0.6 ? clamp((ix * p.vx + iz * p.vz) / hs0, -1, 1) : l) : 0; // and how much she pushes the way she is going
       const drag = lerp(7, 0.55, sK) + 2.6 * against * sK, push = lerp(top * 7, shift ? 8 : 5, sK);
       p.vx += (ix * push - p.vx * drag) * dt; p.vz += (iz * push - p.vz * drag) * dt;
       p.vx -= gx * 13 * sK * dt; p.vz -= gz * 13 * sK * dt;
@@ -643,13 +645,20 @@ class Game {
     p.alt = inAir ? Math.max(0.07, p.yAbs - gy) : 0;
     const hsN = Math.hypot(p.vx, p.vz), sp3 = Math.hypot(hsN, inAir ? p.valt : 0);
     if (hsN > 0.4) p.heading += angDiff(Math.atan2(p.vx, -p.vz), p.heading) * Math.min(1, dt * 8);
-    if (!inAir && !this.sliding) {
+    p.drive = inAir ? 0 : drive; p.ice = inAir ? 0 : ice; // (for her body: see Hero.step)
+    if (!inAir && !this.sliding && ice < 0.5) {
       const before = Math.floor(p.step / Math.PI);
       p.step += hsN * dt * 1.5;
       if (Math.floor(p.step / Math.PI) !== before && hsN > 1 && this.audio) this.audio.step(hsN / 5.2);
     }
     // what the body and the camera make of the speed
-    const leanT = inAir ? clamp(hsN / 15, 0, 1) * 0.5 + clamp(-p.valt / 16, -0.15, 0.36) : this.sliding ? -0.2 : 0;
+    // (on the ground. A slide on grass: she sits back a little, more as she lands and when she brakes. Skating over water or snow:
+    // she stands nearly upright and leans into each push)
+    const gl = !inAir && (this.sliding || (ice > 0.5 && hsN > 0.8));
+    // (and coming down she rights herself as the ground comes up, feet first, as a bird does: the lean of her flight is given up over the
+    // same last metre and a half in which her limbs leave it)
+    const leanT = inAir ? lerp(-0.1, clamp(hsN / 15, 0, 1) * 0.5 + clamp(-p.valt / 16, -0.15, 0.36), p.valt > 1 ? 1 : sstep(0.15, 1.5, p.alt))
+      : gl ? clamp((ice > 0.5 ? -0.02 + 0.11 * Math.max(0, drive) : -0.11) - 0.2 * against - 0.15 * clamp((this.slideT || 0) / 0.9, 0, 1), -0.27, 0.12) : 0;
     this.lean += (leanT - this.lean) * Math.min(1, dt * 4);
     this.roll += ((inAir ? -mx * 0.2 : this.sliding ? -mx * 0.08 : 0) - this.roll) * Math.min(1, dt * 3);
     this.fovK += (clamp((sp3 - 7.5) / 11, 0, 1) - this.fovK) * Math.min(1, dt * 2.5);

@@ -18,7 +18,7 @@ const HERO_GREEN = [[0.46, 0.74, 0.44], [0.33, 0.62, 0.38], [0.4, 0.7, 0.42], [0
 class Hero {
   constructor() {
     this.d = new Float32Array(HERO_MAX * 12); this.n = 0;
-    this.gait = 0; this.walk = 0; this.fly = 0; this.bank = 0; this.hPrev = null; this.slide = 0; this.breeze = 1; this.pose = 0; this.pose2 = 0; this.eye = null;
+    this.gait = 0; this.walk = 0; this.fly = 0; this.bank = 0; this.hPrev = null; this.slide = 0; this.skate = 0; this.stroke = 0; this.ice = 0; this.breeze = 1; this.pose = 0; this.pose2 = 0; this.eye = null;
     this.w1 = [0, 0, 0]; this.w2 = [0, 0, 0];
     this.ox = 0; this.oy = 0; this.oz = 0; this.R = [1, 0, 0]; this.U = [0, 1, 0]; this.F = [0, 0, -1];
     this.gr = 0; this.gc = 0; this.cen = new Float32Array(27);
@@ -34,10 +34,18 @@ class Hero {
     a[0] += (ax - a[0]) * k1; a[1] += (ay - a[1]) * k1; a[2] += (az - a[2]) * k1;
     b[0] += (ax - b[0]) * k2; b[1] += (ay - b[1]) * k2; b[2] += (az - b[2]) * k2;
     this.fly += (clamp(p.alt / 1.4, 0, 1) - this.fly) * Math.min(1, dt * 6);
-    this.walk += ((!inAir && !sliding ? clamp(hs / 1.6, 0, 1) : 0) - this.walk) * Math.min(1, dt * 6);
-    this.slide += ((sliding && !inAir ? 1 : 0) - this.slide) * Math.min(1, dt * 5);
-    if (!inAir && !sliding && hs > 0.05) this.gait += dt * 6 * Math.sqrt(hs / 1.4); // the faster she goes the longer her stride
-    if (this.hPrev !== null && dt > 1e-4) this.bank += (clamp((angDiff(p.heading, this.hPrev) / dt) * 0.22, -0.45, 0.45) * (inAir ? 1 : 0.3) - this.bank) * Math.min(1, dt * 3);
+    // over water and snow she never walks: from the first push she skates. On grass a slide is a slide
+    const ice = inAir ? 0 : p.ice || 0, drive = p.drive || 0, sT = inAir ? 0 : Math.max(sliding ? 1 : 0, ice * clamp((hs - 0.5) / 1.5, 0, 1));
+    this.walk += ((!inAir ? clamp(hs / 1.6, 0, 1) * (1 - sT) : 0) - this.walk) * Math.min(1, dt * 6);
+    this.slide += (sT - this.slide) * Math.min(1, dt * 5);
+    this.ice += (ice - this.ice) * Math.min(1, dt * 4);
+    // the stroke of a skater: a push to one side, a glide, a push to the other, and longer the faster she goes. Coasting, and
+    // sliding on grass, only the sway of it is left
+    this.stroke += (sT * (ice > 0.5 ? 0.2 + 0.8 * clamp(drive, 0, 1) : 0.3) * clamp(hs / 4, 0.35, 1) - this.stroke) * Math.min(1, dt * 2.2);
+    if (this.slide > 0.02) this.skate += dt * TAU * lerp(0.82, 0.6, clamp((hs - 3) / 9, 0, 1));
+    if (!inAir && sT < 0.5 && hs > 0.05) this.gait += dt * 6 * Math.sqrt(hs / 1.4); // the faster she goes the longer her stride
+    // she leans into a turn: fully in the air, a little on her feet, and well over when she carves a slide
+    if (this.hPrev !== null && dt > 1e-4) this.bank += (clamp((angDiff(p.heading, this.hPrev) / dt) * 0.22, -0.45, 0.45) * (inAir ? 1 : lerp(0.3, 0.8, this.slide)) - this.bank) * Math.min(1, dt * 3);
     this.hPrev = p.heading;
   }
 
@@ -137,13 +145,19 @@ class Hero {
     // and the stance of the later picture: seen from the side, the parasol held low before her and leaning back over her shoulder,
     // the other arm at her side, a long scarf going out on the wind
     const p2 = this.pose2 * (1 - fly);
-    const hx = Math.sin(heading), hz = -Math.cos(heading), cl = Math.cos(L), sl = Math.sin(L), cb = Math.cos(this.bank), sb = Math.sin(this.bank), rx = Math.cos(heading), rz = Math.sin(heading);
+    // sliding: sd how much of her is in the slide, A how much she strokes, ic how much of it is skating (water, snow).
+    // ss > 0: she glides on her left foot and the right one pushes; ss < 0 the other way round
+    const sd = this.slide * (1 - fly), A = this.stroke * (1 - fly), ic = this.ice * (1 - fly), sk = this.skate, ss = Math.sin(sk);
+    const tip = 0.02 * sd * (1 - ic) * (Math.sin(time * 3.1) + 0.6 * Math.sin(time * 5.3 + 1)); // on grass she keeps her balance, and it shows
+    const bk = this.bank - 0.06 * A * ss + tip; // her weight goes over the foot she glides on
+    const hx = Math.sin(heading), hz = -Math.cos(heading), cl = Math.cos(L), sl = Math.sin(L), cb = Math.cos(bk), sb = Math.sin(bk), rx = Math.cos(heading), rz = Math.sin(heading);
     const ux = hx * sl, uy = cl, uz = hz * sl;
     R[0] = rx * cb - ux * sb; R[1] = -uy * sb; R[2] = rz * cb - uz * sb;
     U[0] = ux * cb + rx * sb; U[1] = uy * cb; U[2] = uz * cb + rz * sb;
     F[0] = hx * cl; F[1] = -sl; F[2] = hz * cl;
     const sp = Math.sin(ph), cp = Math.cos(ph);
-    this.ox = x; this.oy = y + 0.5 * Math.max(sl, 0) * fly + Math.abs(cp) * 0.02 * wk * SC; this.oz = z;
+    // (each push straightens her and lifts her a little)
+    this.ox = x; this.oy = y + 0.5 * Math.max(sl, 0) * fly + Math.abs(cp) * 0.02 * wk * SC + 0.018 * A * (1 - Math.cos(2 * sk)) * SC; this.oz = z;
     const seg = (ax, ay, az, bx, by, bz, nx, ny, nz, wid, c, cell, flags, lenK) => S.add((ax + bx) / 2 + nx * 0.02, (ay + by) / 2 + ny * 0.02, (az + bz) / 2 + nz * 0.02, bx - ax, by - ay, bz - az, nx, ny, nz,
       Math.hypot(bx - ax, by - ay, bz - az) * (lenK || 1.06), wid, c, 0, cell, 0, flags || 0);
 
@@ -157,13 +171,15 @@ class Hero {
       const dk = dm > 1e-3 ? (0.52 * th8 * s2) / dm : 0;
       const ox = dx * dk, oz = dz * dk, oy = (clamp(dy * 0.035, -0.06, 0.34) + 0.1 * th8) * s2;
       const rad = HERO_SR[j] * (1 + 0.3 * Math.max(fall, 0) * s - 0.14 * fly * s * (1 - Math.max(fall, 0)));
-      const uj = HERO_SU[j], cf = -0.035 * sstep(0, 0.25, s) - 0.05 * s, cr = Math.sin(ph + 0.6) * 0.022 * wk * s;
-      const kb = wk * 0.055 * Math.sin(Math.PI * clamp((s - 0.2) / 0.75, 0, 1)), fA = 0.012 + 0.085 * Math.pow(s, 1.4), flut = 0.014 * s2 * Math.min(1, dm / 4);
+      // (the hem swings after her as her weight goes from foot to foot)
+      const uj = HERO_SU[j], cf = -0.035 * sstep(0, 0.25, s) - 0.05 * s, cr = Math.sin(ph + 0.6) * 0.022 * wk * s + Math.sin(sk - 0.9) * 0.055 * A * s2;
+      const kn0 = Math.sin(Math.PI * clamp((s - 0.2) / 0.75, 0, 1)), kb = wk * 0.055 * kn0, kg = A * ic * 0.05 * kn0, fA = 0.012 + 0.085 * Math.pow(s, 1.4), flut = 0.014 * s2 * Math.min(1, dm / 4);
       for (let i = 0; i < NC; i++) {
         const th = (i / NC) * TAU, st = Math.sin(th), ct = Math.cos(th), wv = Math.cos(7 * th + fph + s * 1.3);
         const fold = 1 + fA * wv + 0.028 * s * s * Math.cos(12 * th - fph * 1.7 + 1.3);
         const dr = Math.atan2(Math.sin(th - 0.5), Math.cos(th - 0.5)), dl = Math.atan2(Math.sin(th + 0.5), Math.cos(th + 0.5));
-        const knee = kb * (Math.max(0, sp) * Math.exp(-dr * dr * 3) + Math.max(0, -sp) * Math.exp(-dl * dl * 3));
+        const knee = kb * (Math.max(0, sp) * Math.exp(-dr * dr * 3) + Math.max(0, -sp) * Math.exp(-dl * dl * 3))
+          + kg * (Math.max(0, -ss) * Math.exp(-dr * dr * 3) + Math.max(0, ss) * Math.exp(-dl * dl * 3)); // the knee she glides on
         const rr = rad * fold * (1 + 0.16 * s * Math.max(0, -ct)) + knee;
         this.put(j, i, st * rr + cr, uj + 0.028 * s * s * ct + flut * Math.sin(time * 5.3 + i * 1.9), ct * rr + cf, WH[(i * 5 + j * 3) % 4], 1 - 0.3 * Math.pow(s, 0.7) * Math.max(0, -wv));
         const o = (j * NC + i) * 3; G[o] += ox; G[o + 1] += oy; G[o + 2] += oz;
@@ -197,7 +213,10 @@ class Hero {
     let lx = c8[0] - c5[0], ly = c8[1] - c5[1], lz = c8[2] - c5[2];
     const ll = Math.hypot(lx, ly, lz) || 1; lx /= ll; ly /= ll; lz /= ll;
     for (let e = -1; e <= 1; e += 2) {
-      const lift = Math.max(0, e * cp) * 0.05 * wk, fw = 0.03 + 0.12 * e * sp * wk, a0 = this.at(0.07 * e, 0.06 + lift, fw), kick = Math.sin(time * 2.1 + e) * 0.04;
+      // (sliding, one foot leads. Skating, the foot that pushes goes back and out and leaves the water as the push ends)
+      const q = Math.max(0, e * ss), push = A * ic * q;
+      const lift = Math.max(0, e * cp) * 0.05 * wk + 0.07 * push * q, fw = 0.03 + 0.12 * e * sp * wk + sd * (0.05 + 0.08 * e * (1 - A * ic)) - 0.27 * push;
+      const a0 = this.at(0.07 * e + 0.1 * e * push, 0.06 + lift, fw), kick = Math.sin(time * 2.1 + e) * 0.04;
       const a1 = [c8[0] + (R[0] * 0.06 * e + lx * 0.12 + F[0] * kick) * SC, c8[1] + (R[1] * 0.06 * e + ly * 0.12 + F[1] * kick) * SC, c8[2] + (R[2] * 0.06 * e + lz * 0.12 + F[2] * kick) * SC];
       const an = [lerp(a0[0], a1[0], fly), lerp(a0[1], a1[1], fly), lerp(a0[2], a1[2], fly)];
       const hip = [c5[0] + R[0] * 0.05 * e * SC, c5[1] + R[1] * 0.05 * e * SC, c5[2] + R[2] * 0.05 * e * SC];
@@ -214,7 +233,7 @@ class Hero {
     const NT = HERO_TU.length;
     this.grid(NT, 12);
     for (let j = 0; j < NT; j++) {
-      const u = HERO_TU[j], spf = (u - 1.03) * kSp + HERO_TC[j], tw = 0.09 * wk * sp * (u - 1.03) / 0.36, ctw = Math.cos(tw), stw = Math.sin(tw);
+      const u = HERO_TU[j], spf = (u - 1.03) * kSp + HERO_TC[j], tw = (0.09 * wk * sp - 0.06 * A * ic * ss) * (u - 1.03) / 0.36, ctw = Math.cos(tw), stw = Math.sin(tw);
       for (let i = 0; i < 12; i++) {
         const th = (i / 12) * TAU, r0 = Math.sin(th) * HERO_TX[j], f0 = Math.cos(th) * HERO_TF[j];
         this.put(j, i, r0 * ctw + f0 * stw, u, f0 * ctw - r0 * stw + spf, WH[(i + j) % 2], 1);
@@ -234,6 +253,7 @@ class Hero {
     const Uh = [U[0] * cha - F[0] * sha, U[1] * cha - F[1] * sha, U[2] * cha - F[2] * sha], Fp = [F[0] * cha + U[0] * sha, F[1] * cha + U[1] * sha, F[2] * cha + U[2] * sha];
     let hy = 0;
     if (ps > 0.01 && this.eye) { const ex = this.eye[0] - x, ez = this.eye[2] - z, el = Math.hypot(ex, ez) || 1; hy = clamp(Math.atan2((ex * rx + ez * rz) / el, (ex * hx + ez * hz) / el), -1.1, 1.1) * ps; }
+    hy += sd * clamp(this.bank * 1.1, -0.45, 0.45); // carving, she looks into the turn
     const chy = Math.cos(hy), shy = Math.sin(hy);
     const Rh = [R[0] * chy - Fp[0] * shy, R[1] * chy - Fp[1] * shy, R[2] * chy - Fp[2] * shy], Fh = [Fp[0] * chy + R[0] * shy, Fp[1] * chy + R[1] * shy, Fp[2] * chy + R[2] * shy];
     const nb = this.at(0, 1.4, (1.4 - 1.03) * kSp), off = (p, a, ka, b, kb2, c, kc) => [p[0] + (a[0] * ka + b[0] * kb2 + c[0] * kc) * SC, p[1] + (a[1] * ka + b[1] * kb2 + c[1] * kc) * SC, p[2] + (a[2] * ka + b[2] * kb2 + c[2] * kc) * SC];
@@ -270,8 +290,9 @@ class Hero {
     { const p = off(hb, Rh, 0.07, Ut, 0.04, Ft, 0.07); S.bill(p[0], p[1], p[2], 1.2, 0.06 * SC, 0.055 * SC, [0.98, 0.62, 0.56], 0, CELL.DOT, 0.1, false, 0, 1, 0, 0); }
 
     // ----- the parasol: on her shoulder when she walks, ahead of her when she flies, and it beats like a wing when she climbs -----
-    const tau = lerp(lerp((0.3 + Math.sin(time * 1.7) * 0.03) * (1 - fly) - 0.6 * L * fly, -0.3 + Math.sin(time * 1.7) * 0.02, ps), 0.7 + Math.sin(time * 1.7) * 0.02, p2);
-    const side = lerp(lerp((0.14 + Math.sin(time * 1.3) * 0.02) * (1 - fly), 0.27, ps), -0.05, p2), cta = Math.cos(tau), sta = Math.sin(tau);
+    // (sliding, it comes up off her shoulder, and it stays quiet over her while she sways under it)
+    const tau = lerp(lerp((0.3 - 0.12 * sd + Math.sin(time * 1.7) * 0.03 - 0.025 * A * Math.cos(2 * sk)) * (1 - fly) - 0.6 * L * fly, -0.3 + Math.sin(time * 1.7) * 0.02, ps), 0.7 + Math.sin(time * 1.7) * 0.02, p2);
+    const side = lerp(lerp((0.14 + Math.sin(time * 1.3) * 0.02 + 0.045 * A * ss - 0.7 * tip) * (1 - fly), 0.27, ps), -0.05, p2), cta = Math.cos(tau), sta = Math.sin(tau);
     let ax = U[0] * cta - F[0] * sta + R[0] * side, ay = U[1] * cta - F[1] * sta + R[1] * side, az = U[2] * cta - F[2] * sta + R[2] * side;
     const al = Math.hypot(ax, ay, az) || 1; ax /= al; ay /= al; az /= al;
     const shf = (1.335 - 1.03) * kSp;
@@ -317,10 +338,11 @@ class Hero {
     const elR = [(shR[0] + hand[0]) / 2 + (R[0] * 0.075 - U[0] * 0.06 * (1 - fly) + F[0] * 0.03) * SC, (shR[1] + hand[1]) / 2 + (R[1] * 0.075 - U[1] * 0.06 * (1 - fly) + F[1] * 0.03) * SC, (shR[2] + hand[2]) / 2 + (R[2] * 0.075 - U[2] * 0.06 * (1 - fly) + F[2] * 0.03) * SC];
     this.tube([shR, elR, hand], [0.054, 0.044, 0.032], 7, WH[1], 1, 0.15);
     this.ball(hand, R, 0.034, U, 0.04, F, 0.034, 4, 6, HERO_SKIN, 1);
-    // (sliding, it goes out for balance)
-    const sd = this.slide * (1 - fly), bal = Math.sin(time * 2.3) * 0.05;
-    const hL = this.at(lerp(lerp(-0.215, -0.54, sd), -0.62, fly), lerp(lerp(0.94, 1.2 + bal, sd), 1.27, fly) - 0.1 * fk * fly, lerp(lerp(0.06 + 0.1 * sp * wk, 0.08, sd), -0.2, fly) + shf * fly);
-    const eL = this.at(lerp(lerp(-0.235, -0.36, sd), -0.4, fly), lerp(lerp(1.13, 1.27, sd), 1.335, fly), lerp(lerp(-0.02 + 0.04 * sp * wk, 0.02, sd), -0.07, fly) + shf * fly);
+    // (sliding, it floats out from her side, low and soft: it rises on the outside of a turn, goes back as the right foot pushes,
+    // and on grass it is busier, for balance)
+    const bal = Math.sin(time * 1.9) * 0.015 + 3.5 * tip, rise = 0.32 * this.bank - 0.05 * A * ss + bal, swing = -0.09 * A * ic * ss;
+    const hL = this.at(lerp(lerp(-0.215, -0.47 - 0.4 * rise, sd), -0.62, fly), lerp(lerp(0.94, 1.07 + rise, sd), 1.27, fly) - 0.1 * fk * fly, lerp(lerp(0.06 + 0.1 * sp * wk, -0.02 + swing, sd), -0.2, fly) + shf * fly);
+    const eL = this.at(lerp(lerp(-0.235, -0.33 - 0.15 * rise, sd), -0.4, fly), lerp(lerp(1.13, 1.2 + 0.4 * rise, sd), 1.335, fly), lerp(lerp(-0.02 + 0.04 * sp * wk, -0.03 + 0.5 * swing, sd), -0.07, fly) + shf * fly);
     if (ps > 0.001) { const hp = this.at(-0.015, 1.14, 0.205), ep = this.at(-0.245, 1.12, 0.07); for (let i = 0; i < 3; i++) { hL[i] = lerp(hL[i], hp[i], ps); eL[i] = lerp(eL[i], ep[i], ps); } } // the other hand comes to the handle too
     this.tube([shL, eL, hL], [0.054, 0.044, 0.032], 7, WH[0], 1, 0.15);
     this.ball(hL, R, 0.034, U, 0.04, F, 0.034, 4, 6, HERO_SKIN, 1);

@@ -540,15 +540,17 @@ const ALIVE = (() => {
 
     stepFlocks(g, dt);
 
-    // water: a ring left behind her every half second of a slide
+    // water: a ring left behind her every half second of a slide. Where she skates with a will, the rings are her strokes:
+    // one where each foot comes down, to the left and to the right of her line
     const onWater = W.waterY !== null && p.alt <= 0.06 && g.floorAt(W, p) <= W.waterY + 0.001;
-    if (g.sliding && onWater) {
+    const H = g.hero, strokes = H.stroke > 0.45, beat = Math.floor(H.skate / Math.PI);
+    if (onWater && (g.sliding || (strokes && Math.hypot(p.vx, p.vz) > 1.5))) {
       st.ringT -= dt;
-      if (st.ringT <= 0) {
-        st.ringT = 0.5;
-        const r = rings[st.ri]; st.ri = (st.ri + 1) % rings.length;
-        r.t0 = now; r.x = p.x; r.z = p.z; r.seed = st.ringN * 1.37;
-        if (g.ch.id === 'pond' && st.ringN % 3 === 1) ring(g, 'glass', 0.01, [5, 7, 6, 8, 5, 9][((st.ringN - 1) / 3) % 6], 0.022); // the pond rings like glass, now and then
+      if (strokes ? beat !== st.ringBeat && st.ringT <= 0.15 : st.ringT <= 0) {
+        st.ringT = 0.5; st.ringBeat = beat;
+        const r = rings[st.ri], off = strokes ? (beat % 2 ? 0.16 : -0.16) : 0; st.ri = (st.ri + 1) % rings.length;
+        r.t0 = now; r.x = p.x + Math.cos(p.heading) * off; r.z = p.z + Math.sin(p.heading) * off; r.seed = st.ringN * 1.37;
+        if (g.ch.id === 'pond' && st.ringN % (strokes ? 2 : 3) === 1) { ring(g, 'glass', 0.01, [5, 7, 6, 8, 5, 9][(st.glassN || 0) % 6], 0.022); st.glassN = (st.glassN || 0) + 1; } // the pond rings like glass, now and then
         st.ringN++;
       }
     } else st.ringT = Math.min(st.ringT, 0.12);
